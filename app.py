@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 import pandas as pd
 import requests
 import streamlit as st
+import folium
+from streamlit_folium import st_folium
 
 DB_PATH = "stations_nouakchott.db"
 
@@ -359,66 +361,46 @@ if page == "🗺️ Carte publique":
         for sid, grp in avail.groupby("station_id"):
             avail_grp[int(sid)] = grp.set_index("fuel")[["status", "updated_at"]].to_dict("index")
 
-    # Construire le DataFrame carte avec couleur selon statut dominant
-    map_rows = []
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=12)
+
     for _, s in stations.iterrows():
         sid = int(s["id"])
         a = avail_grp.get(sid, {})
-        statuses = [v.get("status") for v in a.values() if v.get("status")]
-
-        if "DISPONIBLE" in statuses:
-            color = "#22C55E"   # vert
-        elif "RUPTURE" in statuses:
-            color = "#EF4444"   # rouge
-        elif "INCERTAIN" in statuses:
-            color = "#FBbf24"   # jaune
-        else:
-            color = "#6366F1"   # violet
-
         lines = []
         for f_code, f_name in FUELS:
             stt = a.get(f_code, {}).get("status")
-            lines.append(f"{status_emoji(stt) if stt else '•'} {f_name}: {status_label(stt) if stt else 'Non renseigné'}")
+            upd = a.get(f_code, {}).get("updated_at", "")
+            upd_str = f" <small>({upd[:10]})</small>" if upd else ""
+            if stt:
+                lines.append(f"{status_emoji(stt)} {f_name}: {status_label(stt)}{upd_str}")
+            else:
+                lines.append(f"• {f_name}: <i>non renseigné</i>")
 
-        map_rows.append({
-            "lat": s["lat"],
-            "lon": s["lon"],
-            "name": s["name"],
-            "color": color,
-            "detail": " | ".join(lines),
-        })
+        ann = get_announcements(station_id=sid, active_only=True)
+        ann_html = ""
+        if not ann.empty:
+            ann_html = "<hr/><b>📢 Annonces :</b><br/>"
+            for _, row in ann.iterrows():
+                cat_icon = CATEGORIES.get(row["category"], "ℹ️").split()[0]
+                ann_html += f"<b>{cat_icon} {row['title']}</b><br/><small>{row['body'][:80]}{'…' if len(row['body'])>80 else ''}</small><br/>"
 
-    df_map = pd.DataFrame(map_rows)
+        popup_html = f"""
+        <b style='font-size:14px'>{s['name']}</b><br/>
+        <i>{s.get('operator') or ''}</i><br/>
+        {s.get('address') or ''}<br/><hr/>
+        """ + "<br/>".join(lines) + ann_html
+
+        folium.Marker(
+            location=[s["lat"], s["lon"]],
+            popup=folium.Popup(popup_html, max_width=380),
+            tooltip=s["name"],
+        ).add_to(m)
 
     col1, col2 = st.columns([2, 1], gap="large")
 
     with col1:
         st.subheader("Carte")
-
-        # Légende
-        lcol1, lcol2, lcol3, lcol4 = st.columns(4)
-        lcol1.markdown("🟢 Disponible")
-        lcol2.markdown("🔴 Rupture")
-        lcol3.markdown("🟡 Incertain")
-        lcol4.markdown("🟣 Non renseigné")
-
-        st.map(
-            df_map,
-            latitude="lat",
-            longitude="lon",
-            color="color",
-            size=80,
-            zoom=12,
-        )
-
-        # Table cliquable sous la carte
-        st.caption("📍 Cliquez sur une ligne pour voir les détails de la station")
-        st.dataframe(
-            df_map[["name", "detail"]].rename(columns={"name": "Station", "detail": "Disponibilités"}),
-            use_container_width=True,
-            height=180,
-            hide_index=True,
-        )
+        st_folium(m, width=900, height=600)
 
     with col2:
         st.subheader("Tableau des disponibilités")
