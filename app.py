@@ -1,11 +1,11 @@
 import hashlib
 import sqlite3
+import time
 from datetime import datetime, timezone
 
 import pandas as pd
 import requests
 import streamlit as st
-import leafmap.foliumap as leafmap
 
 DB_PATH = "stations_nouakchott.db"
 
@@ -112,7 +112,6 @@ def init_db():
             FOREIGN KEY (station_id) REFERENCES stations(id)
         )""")
 
-        # Comptes station (espace sécurisé)
         con.execute("""
         CREATE TABLE IF NOT EXISTS station_accounts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,7 +122,6 @@ def init_db():
             FOREIGN KEY (station_id) REFERENCES stations(id)
         )""")
 
-        # Annonces publiées par les stations
         con.execute("""
         CREATE TABLE IF NOT EXISTS announcements (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,7 +134,6 @@ def init_db():
             FOREIGN KEY (station_id) REFERENCES stations(id)
         )""")
 
-        # Horaires d'ouverture
         con.execute("""
         CREATE TABLE IF NOT EXISTS opening_hours (
             station_id INTEGER PRIMARY KEY,
@@ -193,7 +190,6 @@ def create_account(station_id: int, username: str, password: str) -> bool:
         return False
 
 def authenticate(username: str, password: str):
-    """Returns station_id if credentials are valid, else None."""
     with db() as con:
         row = con.execute("""
         SELECT station_id FROM station_accounts
@@ -360,58 +356,57 @@ if page == "🗺️ Carte publique":
         for sid, grp in avail.groupby("station_id"):
             avail_grp[int(sid)] = grp.set_index("fuel")[["status", "updated_at"]].to_dict("index")
 
-    m = leafmap.Map(center=[center_lat, center_lon], zoom=12)
-
+    map_rows = []
     for _, s in stations.iterrows():
         sid = int(s["id"])
         a = avail_grp.get(sid, {})
+
+        statuses = [v.get("status") for v in a.values() if v.get("status")]
+        if "DISPONIBLE" in statuses:
+            color = "#22C55E"
+        elif "RUPTURE" in statuses:
+            color = "#EF4444"
+        elif "INCERTAIN" in statuses:
+            color = "#FBbf24"
+        else:
+            color = "#6366F1"
+
         lines = []
         for f_code, f_name in FUELS:
             stt = a.get(f_code, {}).get("status")
             upd = a.get(f_code, {}).get("updated_at", "")
-            upd_str = f" <small>({upd[:10]})</small>" if upd else ""
-            if stt:
-                lines.append(f"{status_emoji(stt)} {f_name}: {status_label(stt)}{upd_str}")
-            else:
-                lines.append(f"• {f_name}: <i>non renseigné</i>")
+            upd_str = f" ({upd[:10]})" if upd else ""
+            lines.append(f"{status_emoji(stt) if stt else '•'} {f_name}: {status_label(stt) if stt else 'Non renseigné'}{upd_str}")
 
-        ann = get_announcements(station_id=sid, active_only=True)
-        ann_html = ""
-        if not ann.empty:
-            ann_html = "<hr/><b>📢 Annonces :</b><br/>"
-            for _, row in ann.iterrows():
-                cat_icon = CATEGORIES.get(row["category"], "ℹ️").split()[0]
-                ann_html += f"<b>{cat_icon} {row['title']}</b><br/><small>{row['body'][:80]}{'…' if len(row['body'])>80 else ''}</small><br/>"
+        map_rows.append({
+            "lat": s["lat"],
+            "lon": s["lon"],
+            "name": s["name"],
+            "color": color,
+            "detail": " | ".join(lines),
+        })
 
-        popup_html = f"""
-        <b style='font-size:14px'>{s['name']}</b><br/>
-        <i>{s.get('operator') or ''}</i><br/>
-        {s.get('address') or ''}<br/><hr/>
-        """ + "<br/>".join(lines) + ann_html
-
-        # Couleur du marqueur selon statut dominant
-        statuses = [v.get("status") for v in a.values() if v.get("status")]
-        if "DISPONIBLE" in statuses:
-            icon_color = "green"
-        elif "RUPTURE" in statuses:
-            icon_color = "red"
-        elif "INCERTAIN" in statuses:
-            icon_color = "orange"
-        else:
-            icon_color = "purple"
-
-        m.add_marker(
-            location=[s["lat"], s["lon"]],
-            popup=popup_html,
-            tooltip=s["name"],
-            icon=leafmap.folium.Icon(color=icon_color, icon="tint", prefix="fa"),
-        )
+    df_map = pd.DataFrame(map_rows)
 
     col1, col2 = st.columns([2, 1], gap="large")
 
     with col1:
         st.subheader("Carte")
-        m.to_streamlit(width=900, height=600)
+        lcol1, lcol2, lcol3, lcol4 = st.columns(4)
+        lcol1.markdown("🟢 Disponible")
+        lcol2.markdown("🔴 Rupture")
+        lcol3.markdown("🟡 Incertain")
+        lcol4.markdown("🟣 Non renseigné")
+
+        st.map(df_map, latitude="lat", longitude="lon", color="color", size=80, zoom=12)
+
+        st.caption("📋 Détail des disponibilités par station :")
+        st.dataframe(
+            df_map[["name", "detail"]].rename(columns={"name": "Station", "detail": "Disponibilités"}),
+            use_container_width=True,
+            height=180,
+            hide_index=True,
+        )
 
     with col2:
         st.subheader("Tableau des disponibilités")
@@ -436,7 +431,6 @@ elif page == "📢 Annonces":
     if ann.empty:
         st.info("Aucune annonce publiée pour le moment.")
     else:
-        # Filtre station
         all_stations = ["Toutes les stations"] + ann["station_name"].unique().tolist()
         f_station = st.selectbox("Filtrer par station", all_stations)
         if f_station != "Toutes les stations":
@@ -456,7 +450,6 @@ elif page == "📢 Annonces":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🔐 Espace station":
 
-    # ── Pas connecté ──────────────────────────────────────────────────────────
     if not st.session_state.get("station_logged_in"):
         st.title("🔐 Espace station — Connexion")
         st.markdown("Connectez-vous avec les identifiants fournis par votre administrateur.")
@@ -469,7 +462,6 @@ elif page == "🔐 Espace station":
         if submitted:
             sid = authenticate(username, password)
             if sid:
-                # récupérer le nom de la station
                 with db() as con:
                     row = con.execute("SELECT name FROM stations WHERE id=?", (sid,)).fetchone()
                 st.session_state["station_logged_in"] = True
@@ -479,7 +471,6 @@ elif page == "🔐 Espace station":
             else:
                 st.error("Identifiant ou mot de passe incorrect.")
 
-    # ── Connecté ──────────────────────────────────────────────────────────────
     else:
         sid = st.session_state["station_id"]
         sname = st.session_state["station_name"]
@@ -493,7 +484,6 @@ elif page == "🔐 Espace station":
 
         tab1, tab2, tab3 = st.tabs(["⛽ Carburants", "📢 Annonces", "🕐 Horaires"])
 
-        # ── Tab 1 : Carburants ───────────────────────────────────────────────
         with tab1:
             st.subheader("Mettre à jour les disponibilités carburant")
 
@@ -502,7 +492,6 @@ elif page == "🔐 Espace station":
             avail_dict = avail_station.set_index("fuel")["status"].to_dict() if not avail_station.empty else {}
 
             st.markdown("Sélectionnez le statut actuel pour chaque carburant :")
-
             status_options = [s for s, _ in STATUSES]
 
             with st.form("fuel_form"):
@@ -530,7 +519,6 @@ elif page == "🔐 Espace station":
                 st.success("✅ Disponibilités mises à jour avec succès !")
                 st.rerun()
 
-            # Résumé actuel
             st.divider()
             st.markdown("**État actuel enregistré :**")
             avail_station_fresh = get_availability()
@@ -548,7 +536,6 @@ elif page == "🔐 Espace station":
             else:
                 st.info("Aucun statut renseigné.")
 
-        # ── Tab 2 : Annonces ─────────────────────────────────────────────────
         with tab2:
             st.subheader("Publier une annonce")
 
@@ -596,7 +583,6 @@ elif page == "🔐 Espace station":
                                 delete_announcement(row["id"])
                                 st.rerun()
 
-        # ── Tab 3 : Horaires ─────────────────────────────────────────────────
         with tab3:
             st.subheader("Horaires d'ouverture")
             st.caption("Ces horaires seront visibles par les usagers dans la fiche de votre station.")
@@ -624,7 +610,6 @@ elif page == "🔐 Espace station":
                 st.success("✅ Horaires enregistrés !")
                 st.rerun()
 
-            # Résumé
             h = get_opening_hours(sid)
             if h:
                 st.divider()
@@ -666,19 +651,14 @@ elif page == "⚙️ Administration":
 
         tab_a, tab_b, tab_c = st.tabs(["👤 Créer un compte station", "📋 Comptes existants", "🔄 Actualiser OSM"])
 
-        # ── Tab A : Créer compte ─────────────────────────────────────────────
         with tab_a:
             st.subheader("Créer un compte pour une station")
 
             if stations.empty:
                 st.warning("Aucune station en base. Actualisez d'abord depuis OSM.")
             else:
-                # Stations sans compte
                 accounts_df = list_accounts()
-                if not accounts_df.empty:
-                    existing_sids = accounts_df["station_name"].tolist()
-                else:
-                    existing_sids = []
+                existing_sids = accounts_df["station_name"].tolist() if not accounts_df.empty else []
 
                 station_opts = stations.apply(
                     lambda r: f"{r['name']} (id={r['id']})", axis=1
@@ -706,7 +686,6 @@ elif page == "⚙️ Administration":
                         else:
                             st.error("Ce nom d'utilisateur ou cette station a déjà un compte.")
 
-        # ── Tab B : Comptes existants ────────────────────────────────────────
         with tab_b:
             st.subheader("Comptes stations existants")
             accounts = list_accounts()
@@ -716,7 +695,6 @@ elif page == "⚙️ Administration":
                 accounts.columns = ["ID", "Identifiant", "Station", "Créé le"]
                 st.dataframe(accounts, use_container_width=True)
 
-        # ── Tab C : OSM ──────────────────────────────────────────────────────
         with tab_c:
             st.subheader("Actualiser la liste des stations depuis OSM")
             if st.button("🔄 Lancer l'import OSM"):
