@@ -6,8 +6,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import requests
 import streamlit as st
-import folium
-from streamlit_folium import st_folium
+import pydeck as pdk
 
 DB_PATH = "stations_nouakchott.db"
 
@@ -356,52 +355,83 @@ if page == "🗺️ Carte publique":
 
     center_lat = stations["lat"].mean()
     center_lon = stations["lon"].mean()
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=12)
 
+    # Construire les données pour la carte avec statut dominant par station
     avail_grp = {}
     if not avail.empty:
         for sid, grp in avail.groupby("station_id"):
-            avail_grp[sid] = grp.set_index("fuel")[["status", "updated_at"]].to_dict("index")
+            avail_grp[int(sid)] = grp.set_index("fuel")[["status", "updated_at"]].to_dict("index")
 
+    map_rows = []
     for _, s in stations.iterrows():
         sid = int(s["id"])
         a = avail_grp.get(sid, {})
+
+        # Couleur selon statut dominant
+        statuses = [v.get("status") for v in a.values() if v.get("status")]
+        if "DISPONIBLE" in statuses:
+            color = [34, 197, 94, 220]   # vert
+        elif "RUPTURE" in statuses:
+            color = [239, 68, 68, 220]   # rouge
+        elif "INCERTAIN" in statuses:
+            color = [251, 191, 36, 220]  # orange
+        else:
+            color = [99, 102, 241, 200]  # violet (non renseigné)
+
+        # Tooltip détaillé
         lines = []
         for f_code, f_name in FUELS:
             stt = a.get(f_code, {}).get("status")
-            upd = a.get(f_code, {}).get("updated_at", "")
-            upd_str = f" <small>({upd[:10]})</small>" if upd else ""
-            if stt:
-                lines.append(f"{status_emoji(stt)} {f_name}: {status_label(stt)}{upd_str}")
-            else:
-                lines.append(f"• {f_name}: <i>non renseigné</i>")
+            lines.append(f"{status_emoji(stt) if stt else '•'} {f_name}: {status_label(stt) if stt else 'Non renseigné'}")
 
-        # annonces actives
-        ann = get_announcements(station_id=sid, active_only=True)
-        ann_html = ""
-        if not ann.empty:
-            ann_html = "<hr/><b>📢 Annonces :</b><br/>"
-            for _, row in ann.iterrows():
-                cat_icon = CATEGORIES.get(row["category"], "ℹ️").split()[0]
-                ann_html += f"<b>{cat_icon} {row['title']}</b><br/><small>{row['body'][:80]}{'…' if len(row['body'])>80 else ''}</small><br/>"
+        tooltip = f"{s['name']}\n" + "\n".join(lines)
 
-        popup_html = f"""
-        <b style='font-size:14px'>{s['name']}</b><br/>
-        <i>{s.get('operator') or ''}</i><br/>
-        {s.get('address') or ''}<br/><hr/>
-        """ + "<br/>".join(lines) + ann_html
+        map_rows.append({
+            "lat": s["lat"],
+            "lon": s["lon"],
+            "name": s["name"],
+            "operator": s.get("operator") or "",
+            "tooltip": tooltip,
+            "color": color,
+        })
 
-        folium.Marker(
-            location=[s["lat"], s["lon"]],
-            popup=folium.Popup(popup_html, max_width=380),
-            tooltip=s["name"],
-        ).add_to(m)
+    df_map = pd.DataFrame(map_rows)
+
+    layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=df_map,
+        get_position=["lon", "lat"],
+        get_fill_color="color",
+        get_radius=120,
+        pickable=True,
+        auto_highlight=True,
+    )
+
+    view_state = pdk.ViewState(
+        latitude=center_lat,
+        longitude=center_lon,
+        zoom=12,
+        pitch=0,
+    )
 
     col1, col2 = st.columns([2, 1], gap="large")
 
     with col1:
         st.subheader("Carte")
-        st_folium(m, width=900, height=600)
+
+        # Légende couleurs
+        lcol1, lcol2, lcol3, lcol4 = st.columns(4)
+        lcol1.markdown("🟢 Disponible")
+        lcol2.markdown("🔴 Rupture")
+        lcol3.markdown("🟡 Incertain")
+        lcol4.markdown("🟣 Non renseigné")
+
+        st.pydeck_chart(pdk.Deck(
+            layers=[layer],
+            initial_view_state=view_state,
+            tooltip={"text": "{tooltip}"},
+            map_style="mapbox://styles/mapbox/streets-v12",
+        ))
 
     with col2:
         st.subheader("Tableau des disponibilités")
@@ -712,3 +742,4 @@ elif page == "⚙️ Administration":
                     upsert_stations(df_osm)
                 st.success(f"✅ {len(df_osm)} stations importées/mises à jour.")
                 st.rerun()
+
