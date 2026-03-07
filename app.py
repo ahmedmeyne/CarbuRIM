@@ -1,12 +1,10 @@
 import hashlib
 import sqlite3
-import time
 from datetime import datetime, timezone
 
 import pandas as pd
 import requests
 import streamlit as st
-import pydeck as pdk
 
 DB_PATH = "stations_nouakchott.db"
 
@@ -356,82 +354,71 @@ if page == "🗺️ Carte publique":
     center_lat = stations["lat"].mean()
     center_lon = stations["lon"].mean()
 
-    # Construire les données pour la carte avec statut dominant par station
     avail_grp = {}
     if not avail.empty:
         for sid, grp in avail.groupby("station_id"):
             avail_grp[int(sid)] = grp.set_index("fuel")[["status", "updated_at"]].to_dict("index")
 
+    # Construire le DataFrame carte avec couleur selon statut dominant
     map_rows = []
     for _, s in stations.iterrows():
         sid = int(s["id"])
         a = avail_grp.get(sid, {})
-
-        # Couleur selon statut dominant
         statuses = [v.get("status") for v in a.values() if v.get("status")]
-        if "DISPONIBLE" in statuses:
-            color = [34, 197, 94, 220]   # vert
-        elif "RUPTURE" in statuses:
-            color = [239, 68, 68, 220]   # rouge
-        elif "INCERTAIN" in statuses:
-            color = [251, 191, 36, 220]  # orange
-        else:
-            color = [99, 102, 241, 200]  # violet (non renseigné)
 
-        # Tooltip détaillé
+        if "DISPONIBLE" in statuses:
+            color = "#22C55E"   # vert
+        elif "RUPTURE" in statuses:
+            color = "#EF4444"   # rouge
+        elif "INCERTAIN" in statuses:
+            color = "#FBbf24"   # jaune
+        else:
+            color = "#6366F1"   # violet
+
         lines = []
         for f_code, f_name in FUELS:
             stt = a.get(f_code, {}).get("status")
             lines.append(f"{status_emoji(stt) if stt else '•'} {f_name}: {status_label(stt) if stt else 'Non renseigné'}")
 
-        tooltip = f"{s['name']}\n" + "\n".join(lines)
-
         map_rows.append({
             "lat": s["lat"],
             "lon": s["lon"],
             "name": s["name"],
-            "operator": s.get("operator") or "",
-            "tooltip": tooltip,
             "color": color,
+            "detail": " | ".join(lines),
         })
 
     df_map = pd.DataFrame(map_rows)
-
-    layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=df_map,
-        get_position=["lon", "lat"],
-        get_fill_color="color",
-        get_radius=120,
-        pickable=True,
-        auto_highlight=True,
-    )
-
-    view_state = pdk.ViewState(
-        latitude=center_lat,
-        longitude=center_lon,
-        zoom=12,
-        pitch=0,
-    )
 
     col1, col2 = st.columns([2, 1], gap="large")
 
     with col1:
         st.subheader("Carte")
 
-        # Légende couleurs
+        # Légende
         lcol1, lcol2, lcol3, lcol4 = st.columns(4)
         lcol1.markdown("🟢 Disponible")
         lcol2.markdown("🔴 Rupture")
         lcol3.markdown("🟡 Incertain")
         lcol4.markdown("🟣 Non renseigné")
 
-        st.pydeck_chart(pdk.Deck(
-            layers=[layer],
-            initial_view_state=view_state,
-            tooltip={"text": "{tooltip}"},
-            map_style="mapbox://styles/mapbox/streets-v12",
-        ))
+        st.map(
+            df_map,
+            latitude="lat",
+            longitude="lon",
+            color="color",
+            size=80,
+            zoom=12,
+        )
+
+        # Table cliquable sous la carte
+        st.caption("📍 Cliquez sur une ligne pour voir les détails de la station")
+        st.dataframe(
+            df_map[["name", "detail"]].rename(columns={"name": "Station", "detail": "Disponibilités"}),
+            use_container_width=True,
+            height=180,
+            hide_index=True,
+        )
 
     with col2:
         st.subheader("Tableau des disponibilités")
@@ -663,7 +650,10 @@ elif page == "🔐 Espace station":
 elif page == "⚙️ Administration":
     st.title("⚙️ CarbuRIM — Administration")
 
-    ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "admin1234")
+    try:
+        ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "admin1234")
+    except Exception:
+        ADMIN_PASSWORD = "admin1234"
 
     if not st.session_state.get("admin_logged_in"):
         st.markdown("Accès réservé à l'administrateur du système.")
