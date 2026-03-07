@@ -5,8 +5,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import requests
 import streamlit as st
-import folium
-from streamlit_folium import st_folium
+import leafmap.foliumap as leafmap
 
 DB_PATH = "stations_nouakchott.db"
 
@@ -361,7 +360,7 @@ if page == "🗺️ Carte publique":
         for sid, grp in avail.groupby("station_id"):
             avail_grp[int(sid)] = grp.set_index("fuel")[["status", "updated_at"]].to_dict("index")
 
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=12)
+    m = leafmap.Map(center=[center_lat, center_lon], zoom=12)
 
     for _, s in stations.iterrows():
         sid = int(s["id"])
@@ -390,17 +389,29 @@ if page == "🗺️ Carte publique":
         {s.get('address') or ''}<br/><hr/>
         """ + "<br/>".join(lines) + ann_html
 
-        folium.Marker(
+        # Couleur du marqueur selon statut dominant
+        statuses = [v.get("status") for v in a.values() if v.get("status")]
+        if "DISPONIBLE" in statuses:
+            icon_color = "green"
+        elif "RUPTURE" in statuses:
+            icon_color = "red"
+        elif "INCERTAIN" in statuses:
+            icon_color = "orange"
+        else:
+            icon_color = "purple"
+
+        m.add_marker(
             location=[s["lat"], s["lon"]],
-            popup=folium.Popup(popup_html, max_width=380),
+            popup=popup_html,
             tooltip=s["name"],
-        ).add_to(m)
+            icon=leafmap.folium.Icon(color=icon_color, icon="tint", prefix="fa"),
+        )
 
     col1, col2 = st.columns([2, 1], gap="large")
 
     with col1:
         st.subheader("Carte")
-        st_folium(m, width=900, height=600)
+        m.to_streamlit(width=900, height=600)
 
     with col2:
         st.subheader("Tableau des disponibilités")
