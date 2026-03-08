@@ -11,10 +11,10 @@ import streamlit.components.v1 as components
 DB_PATH = "stations_nouakchott.db"
 
 FUELS = [
-    ("ESSENCE",  "Essence",        "بنزين"),
-    ("GASOIL",   "Gasoil / Diesel","ديزل / غازوال"),
-    ("KEROSENE", "Kérosène",       "كيروسين"),
-    ("FUEL_OIL", "Fuel-oil",       "فيول أويل"),
+    ("ESSENCE",  "Essence",         "بنزين"),
+    ("GASOIL",   "Gasoil / Diesel", "ديزل / غازوال"),
+    ("KEROSENE", "Kérosène",        "كيروسين"),
+    ("FUEL_OIL", "Fuel-oil",        "فيول أويل"),
 ]
 
 STATUSES = [
@@ -27,156 +27,132 @@ OVERPASS_URL    = "https://overpass-api.de/api/interpreter"
 NOUAKCHOTT_BBOX = (18.00, -16.10, 18.20, -15.85)
 
 CATEGORIES = {
-    "INFO":    ("ℹ️ Information",  "ℹ️ معلومة"),
-    "PROMO":   ("🎁 Promotion",    "🎁 عرض"),
-    "ALERTE":  ("⚠️ Alerte",       "⚠️ تنبيه"),
-    "SERVICE": ("🔧 Service",      "🔧 خدمة"),
+    "INFO":    ("ℹ️ Information", "ℹ️ معلومة"),
+    "PROMO":   ("🎁 Promotion",   "🎁 عرض"),
+    "ALERTE":  ("⚠️ Alerte",      "⚠️ تنبيه"),
+    "SERVICE": ("🔧 Service",     "🔧 خدمة"),
 }
 
 DAYS_FR = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"]
 DAYS_AR = ["الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
 
-# ─── DICTIONNAIRE DE TRADUCTION ───────────────────────────────────────────────
+# ─── TRADUCTIONS ──────────────────────────────────────────────────────────────
 
 T = {
-    # Sidebar
-    "lang_label":       ("Langue / اللغة",             "Langue / اللغة"),
-    "nav_map":          ("🗺️ Carte publique",           "🗺️ الخريطة العامة"),
-    "nav_ann":          ("📢 Annonces",                 "📢 الإعلانات"),
-    "nav_station":      ("🔐 Espace station",           "🔐 فضاء المحطة"),
-    "nav_admin":        ("⚙️ Administration",           "⚙️ الإدارة"),
-    "filter_title":     ("Filtres",                    "تصفية"),
-    "filter_fuel":      ("Carburant",                  "الوقود"),
-    "filter_status":    ("Statut",                     "الحالة"),
-    "filter_all":       ("(tous)",                     "(الكل)"),
-    "refresh_osm":      ("🔄 Actualiser depuis OSM",   "🔄 تحديث من OSM"),
-    "refresh_ok":       ("stations importées.",        "محطة تم استيرادها."),
-
-    # Page carte
-    "map_title":        ("⛽ CarbuRIM — Carburants & disponibilité à Nouakchott",
-                         "⛽ CarbuRIM — الوقود والتوافر في نواكشوط"),
-    "no_station":       ("Aucune station en base. Cliquez sur '🔄 Actualiser depuis OSM'.",
-                         "لا توجد محطات. انقر على '🔄 تحديث من OSM'."),
-    "nearest_title":    ("📍 Station la plus proche avec carburant disponible",
-                         "📍 أقرب محطة بالوقود المتاح"),
-    "fuel_wanted":      ("Carburant souhaité",         "الوقود المطلوب"),
-    "my_lat":           ("Latitude",                   "خط العرض"),
-    "my_lon":           ("Longitude",                  "خط الطول"),
-    "search_btn":       ("🔍 Chercher",                "🔍 بحث"),
-    "nearest_result":   ("Station la plus proche avec",   "أقرب محطة بـ"),
-    "nearest_km":       ("disponible : **{name}** — à **{dist:.2f} km** de vous",
-                         "متوفر: **{name}** — على بُعد **{dist:.2f} كم**"),
-    "no_nearest":       ("Aucune station avec",        "لا توجد محطة بـ"),
-    "no_nearest2":      ("disponible.",                "متاح."),
-    "details_btn":      ("📋 Voir les détails de cette station",
-                         "📋 عرض تفاصيل المحطة"),
-    "today":            ("Aujourd'hui",                "اليوم"),
-    "map_subtitle":     ("Carte interactive",          "الخريطة التفاعلية"),
-    "map_caption":      ("Cliquez sur un marqueur ⛽ pour voir les détails.",
-                         "انقر على علامة ⛽ لعرض التفاصيل."),
-    "table_title":      ("Tableau des disponibilités", "جدول التوافر"),
-    "col_station":      ("Station",                    "المحطة"),
-    "col_fuel":         ("Carburant",                  "الوقود"),
-    "col_status":       ("Statut",                     "الحالة"),
-    "col_updated":      ("Mis à jour",                 "آخر تحديث"),
-    "col_by":           ("Par",                        "بواسطة"),
-    "no_data":          ("Aucune donnée selon les filtres.", "لا توجد بيانات للفلاتر المختارة."),
-    "legend":           ("Légende",                    "المفتاح"),
-    "available":        ("Disponible",                 "متوفر"),
-    "rupture":          ("Rupture",                    "نفاد"),
-    "uncertain":        ("Incertain",                  "غير محدد"),
-    "unknown":          ("Non renseigné",              "غير مسجل"),
-    "not_filled":       ("Non renseigné",              "غير مسجل"),
-
-    # Page annonces
-    "ann_title":        ("📢 CarbuRIM — Annonces des stations",
-                         "📢 CarbuRIM — إعلانات المحطات"),
-    "ann_empty":        ("Aucune annonce publiée pour le moment.",
-                         "لا توجد إعلانات حالياً."),
-    "ann_filter":       ("Filtrer par station",        "تصفية حسب المحطة"),
-    "ann_all":          ("Toutes les stations",        "جميع المحطات"),
-
-    # Espace station
-    "station_login_title": ("🔐 Espace station — Connexion",
-                            "🔐 فضاء المحطة — تسجيل الدخول"),
-    "station_login_info":  ("Connectez-vous avec les identifiants fournis par votre administrateur.",
-                            "سجّل الدخول بالبيانات المقدمة من المدير."),
-    "login_user":       ("Identifiant",                "اسم المستخدم"),
-    "login_pass":       ("Mot de passe",               "كلمة المرور"),
-    "login_btn":        ("Se connecter",               "تسجيل الدخول"),
+    "nav_map":          ("🗺️ Carte publique",        "🗺️ الخريطة العامة"),
+    "nav_ann":          ("📢 Annonces",              "📢 الإعلانات"),
+    "nav_station":      ("🔐 Espace station",        "🔐 فضاء المحطة"),
+    "nav_admin":        ("⚙️ Administration",        "⚙️ الإدارة"),
+    "filter_title":     ("Filtres",                  "تصفية"),
+    "filter_fuel":      ("Carburant",                "الوقود"),
+    "filter_status":    ("Statut",                   "الحالة"),
+    "filter_all":       ("(tous)",                   "(الكل)"),
+    "refresh_osm":      ("🔄 Actualiser OSM",        "🔄 تحديث OSM"),
+    "refresh_ok":       ("stations importées.",      "محطة تم استيرادها."),
+    "map_title":        ("⛽ CarbuRIM — Nouakchott",  "⛽ CarbuRIM — نواكشوط"),
+    "no_station":       ("Aucune station. Cliquez sur '🔄 Actualiser OSM'.",
+                         "لا توجد محطات. انقر على '🔄 تحديث OSM'."),
+    "nearest_title":    ("📍 Station la plus proche","📍 أقرب محطة"),
+    "fuel_wanted":      ("Carburant souhaité",       "الوقود المطلوب"),
+    "my_lat":           ("Latitude",                 "خط العرض"),
+    "my_lon":           ("Longitude",                "خط الطول"),
+    "search_btn":       ("🔍 Chercher",              "🔍 بحث"),
+    "no_nearest":       ("Aucune station avec",      "لا توجد محطة بـ"),
+    "no_nearest2":      ("disponible.",              "متاح."),
+    "details_btn":      ("📋 Détails",               "📋 التفاصيل"),
+    "today":            ("Aujourd'hui",              "اليوم"),
+    "map_subtitle":     ("Carte interactive",        "الخريطة التفاعلية"),
+    "map_caption":      ("Cliquez sur ⛽ pour les détails.", "انقر على ⛽ للتفاصيل."),
+    "table_title":      ("Disponibilités",           "التوافر"),
+    "col_station":      ("Station",                  "المحطة"),
+    "col_fuel":         ("Carburant",                "الوقود"),
+    "col_status":       ("Statut",                   "الحالة"),
+    "col_updated":      ("Mis à jour",               "آخر تحديث"),
+    "col_by":           ("Par",                      "بواسطة"),
+    "no_data":          ("Aucune donnée.",            "لا توجد بيانات."),
+    "ann_title":        ("📢 Annonces",               "📢 الإعلانات"),
+    "ann_empty":        ("Aucune annonce.",           "لا توجد إعلانات."),
+    "ann_filter":       ("Filtrer par station",      "تصفية حسب المحطة"),
+    "ann_all":          ("Toutes les stations",      "جميع المحطات"),
+    "station_login_title": ("🔐 Connexion station",  "🔐 تسجيل الدخول"),
+    "station_login_info":  ("Identifiants fournis par l'administrateur.",
+                            "البيانات مقدمة من المدير."),
+    "login_user":       ("Identifiant",              "اسم المستخدم"),
+    "login_pass":       ("Mot de passe",             "كلمة المرور"),
+    "login_btn":        ("Se connecter",             "تسجيل الدخول"),
     "login_error":      ("Identifiant ou mot de passe incorrect.",
                          "اسم المستخدم أو كلمة المرور غير صحيحة."),
-    "logout_btn":       ("🚪 Déconnexion",             "🚪 تسجيل الخروج"),
-    "tab_fuels":        ("⛽ Carburants",              "⛽ الوقود"),
-    "tab_ann":          ("📢 Annonces",                "📢 الإعلانات"),
-    "tab_hours":        ("🕐 Horaires",                "🕐 أوقات العمل"),
-    "fuel_update":      ("Mettre à jour les disponibilités", "تحديث التوافر"),
-    "fuel_select_info": ("Sélectionnez le statut actuel pour chaque carburant :",
-                         "اختر الحالة الحالية لكل وقود:"),
-    "save_btn":         ("💾 Enregistrer",             "💾 حفظ"),
-    "save_ok":          ("✅ Mis à jour !",             "✅ تم التحديث!"),
-    "current_state":    ("État actuel :",              "الحالة الحالية:"),
-    "no_status":        ("Aucun statut renseigné.",    "لم يتم إدخال أي حالة."),
-    "pub_ann":          ("Publier une annonce",        "نشر إعلان"),
-    "ann_cat":          ("Catégorie",                  "الفئة"),
-    "ann_ttl":          ("Titre",                      "العنوان"),
-    "ann_body":         ("Contenu",                    "المحتوى"),
-    "pub_btn":          ("📢 Publier",                 "📢 نشر"),
-    "pub_ok":           ("Publiée !",                  "تم النشر!"),
+    "logout_btn":       ("🚪 Déconnexion",           "🚪 خروج"),
+    "tab_fuels":        ("⛽ Carburants",            "⛽ الوقود"),
+    "tab_ann":          ("📢 Annonces",              "📢 الإعلانات"),
+    "tab_hours":        ("🕐 Horaires",              "🕐 الأوقات"),
+    "fuel_update":      ("Disponibilités",           "التوافر"),
+    "fuel_select_info": ("Statut actuel par carburant :", "الحالة الحالية لكل وقود:"),
+    "save_btn":         ("💾 Enregistrer",           "💾 حفظ"),
+    "save_ok":          ("✅ Mis à jour !",           "✅ تم التحديث!"),
+    "current_state":    ("État actuel",              "الحالة الحالية"),
+    "no_status":        ("Aucun statut renseigné.",  "لم يتم إدخال أي حالة."),
+    "pub_ann":          ("Publier une annonce",      "نشر إعلان"),
+    "ann_cat":          ("Catégorie",                "الفئة"),
+    "ann_ttl":          ("Titre",                    "العنوان"),
+    "ann_body":         ("Contenu",                  "المحتوى"),
+    "pub_btn":          ("📢 Publier",               "📢 نشر"),
+    "pub_ok":           ("Publiée !",                "تم النشر!"),
     "pub_warn":         ("Titre et contenu obligatoires.", "العنوان والمحتوى مطلوبان."),
-    "my_ann":           ("Mes annonces",               "إعلاناتي"),
-    "no_ann":           ("Aucune annonce.",             "لا توجد إعلانات."),
-    "published_on":     ("Publiée le",                 "نشر في"),
-    "deactivate":       ("⏸ Désactiver",               "⏸ تعطيل"),
-    "reactivate":       ("▶️ Réactiver",               "▶️ تفعيل"),
-    "delete":           ("🗑️ Supprimer",               "🗑️ حذف"),
-    "hours_title":      ("Horaires d'ouverture",       "أوقات العمل"),
-    "hours_caption":    ("Ces horaires seront visibles par les usagers.",
-                         "ستكون هذه الأوقات مرئية للمستخدمين."),
-    "hours_header":     ("Horaires par jour (ex : 07:00–22:00 ou Fermé)",
-                         "الأوقات حسب اليوم (مثال: 07:00–22:00 أو مغلق)"),
-    "hours_note":       ("Note",                       "ملاحظة"),
-    "hours_saved":      ("✅ Enregistré !",             "✅ تم الحفظ!"),
-    "hours_current":    ("Horaires actuellement enregistrés :", "الأوقات المسجلة حالياً:"),
-
-    # Admin
-    "admin_title":      ("⚙️ CarbuRIM — Administration", "⚙️ CarbuRIM — الإدارة"),
-    "admin_info":       ("Accès réservé à l'administrateur.", "وصول مخصص للمدير فقط."),
-    "admin_pass":       ("Mot de passe",               "كلمة المرور"),
-    "admin_access":     ("Accéder",                    "دخول"),
-    "admin_error":      ("Mot de passe incorrect.",    "كلمة المرور غير صحيحة."),
-    "admin_logout":     ("🚪 Déconnexion admin",       "🚪 خروج المدير"),
-    "tab_create":       ("👤 Créer un compte",         "👤 إنشاء حساب"),
-    "tab_accounts":     ("📋 Comptes existants",       "📋 الحسابات الموجودة"),
-    "tab_osm":          ("🔄 OSM",                     "🔄 OSM"),
-    "create_acc_title": ("Créer un compte station",    "إنشاء حساب محطة"),
-    "no_station_warn":  ("Aucune station. Actualisez d'abord depuis OSM.",
-                         "لا توجد محطات. قم بالتحديث من OSM أولاً."),
-    "station_lbl":      ("Station",                    "المحطة"),
-    "username_lbl":     ("Identifiant",                "اسم المستخدم"),
-    "pass_lbl":         ("Mot de passe",               "كلمة المرور"),
-    "confirm_lbl":      ("Confirmer",                  "تأكيد"),
-    "create_btn":       ("Créer",                      "إنشاء"),
-    "err_empty_user":   ("Identifiant vide.",           "اسم المستخدم فارغ."),
-    "err_pass_diff":    ("Mots de passe différents.",  "كلمتا المرور غير متطابقتين."),
-    "err_pass_short":   ("Minimum 6 caractères.",      "6 أحرف على الأقل."),
-    "acc_created":      ("✅ Compte créé pour",        "✅ تم إنشاء حساب لـ"),
+    "my_ann":           ("Mes annonces",             "إعلاناتي"),
+    "no_ann":           ("Aucune annonce.",          "لا توجد إعلانات."),
+    "published_on":     ("Publiée le",               "نشر في"),
+    "deactivate":       ("⏸",                        "⏸"),
+    "reactivate":       ("▶️",                       "▶️"),
+    "delete":           ("🗑️",                       "🗑️"),
+    "hours_title":      ("Horaires d'ouverture",     "أوقات العمل"),
+    "hours_caption":    ("Visibles par les usagers.", "مرئية للمستخدمين."),
+    "hours_note":       ("Note",                     "ملاحظة"),
+    "hours_saved":      ("✅ Enregistré !",           "✅ تم الحفظ!"),
+    "hours_current":    ("Horaires enregistrés :",   "الأوقات المسجلة:"),
+    "admin_title":      ("⚙️ Administration",        "⚙️ الإدارة"),
+    "admin_info":       ("Accès administrateur.",    "وصول المدير."),
+    "admin_pass":       ("Mot de passe",             "كلمة المرور"),
+    "admin_access":     ("Accéder",                  "دخول"),
+    "admin_error":      ("Mot de passe incorrect.",  "كلمة المرور غير صحيحة."),
+    "admin_logout":     ("🚪 Déconnexion",           "🚪 خروج"),
+    "tab_create":       ("👤 Créer compte",          "👤 إنشاء حساب"),
+    "tab_accounts":     ("📋 Comptes",               "📋 الحسابات"),
+    "tab_osm":          ("🔄 OSM",                   "🔄 OSM"),
+    "create_acc_title": ("Créer un compte station",  "إنشاء حساب محطة"),
+    "no_station_warn":  ("Aucune station. Actualisez depuis OSM.",
+                         "لا توجد محطات. حدّث من OSM أولاً."),
+    "station_lbl":      ("Station",                  "المحطة"),
+    "username_lbl":     ("Identifiant",              "اسم المستخدم"),
+    "pass_lbl":         ("Mot de passe",             "كلمة المرور"),
+    "confirm_lbl":      ("Confirmer",                "تأكيد"),
+    "create_btn":       ("Créer",                    "إنشاء"),
+    "err_empty_user":   ("Identifiant vide.",        "اسم المستخدم فارغ."),
+    "err_pass_diff":    ("Mots de passe différents.","كلمتا المرور غير متطابقتين."),
+    "err_pass_short":   ("Minimum 6 caractères.",   "6 أحرف على الأقل."),
+    "acc_created":      ("✅ Compte créé pour",      "✅ تم إنشاء حساب لـ"),
     "err_duplicate":    ("Identifiant ou station déjà utilisé.",
-                         "اسم المستخدم أو المحطة مستخدم مسبقاً."),
-    "existing_acc":     ("Comptes existants",          "الحسابات الموجودة"),
-    "no_accounts":      ("Aucun compte.",              "لا توجد حسابات."),
-    "col_id":           ("ID",                         "المعرف"),
-    "col_username":     ("Identifiant",                "اسم المستخدم"),
-    "col_station_name": ("Station",                    "المحطة"),
-    "col_created":      ("Créé le",                    "تاريخ الإنشاء"),
-    "osm_title":        ("Actualiser depuis OSM",      "تحديث من OSM"),
-    "osm_btn":          ("🔄 Lancer l'import",         "🔄 بدء الاستيراد"),
-    "osm_ok":           ("✅ stations importées.",     "✅ محطة تم استيرادها."),
-    "osm_loading":      ("Récupération…",              "جارٍ الاسترداد…"),
+                         "مستخدم مسبقاً."),
+    "existing_acc":     ("Comptes existants",        "الحسابات الموجودة"),
+    "no_accounts":      ("Aucun compte.",            "لا توجد حسابات."),
+    "col_id":           ("ID",                       "المعرف"),
+    "col_username":     ("Identifiant",              "المستخدم"),
+    "col_station_name": ("Station",                  "المحطة"),
+    "col_created":      ("Créé le",                  "تاريخ الإنشاء"),
+    "osm_title":        ("Actualiser depuis OSM",    "تحديث من OSM"),
+    "osm_btn":          ("🔄 Lancer l'import",       "🔄 بدء الاستيراد"),
+    "osm_ok":           ("stations importées.",      "محطة تم استيرادها."),
+    "osm_loading":      ("Récupération…",            "جارٍ الاسترداد…"),
+    "geo_btn":          ("📍 Utiliser ma position GPS", "📍 استخدام موقعي GPS"),
+    "geo_wait":         ("Localisation…",            "جارٍ التحديد…"),
+    "geo_error":        ("Position non disponible.", "الموقع غير متاح."),
+    "geo_denied":       ("Permission refusée.",      "تم رفض الإذن."),
+    "geo_or":           ("— ou entrez manuellement —", "— أو أدخل يدوياً —"),
+    "map_locate":       ("📍 Ma position",           "📍 موقعي"),
+    "here":             ("Vous êtes ici",            "أنت هنا"),
 }
 
 def t(key, lang):
-    """Retourne le texte FR (index 0) ou AR (index 1)."""
     val = T.get(key, (key, key))
     return val[1] if lang == "AR" else val[0]
 
@@ -203,7 +179,7 @@ def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     dl  = math.radians(lat2 - lat1)
     dlo = math.radians(lon2 - lon1)
-    a   = math.sin(dl/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlo/2)**2
+    a   = math.sin(dl/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dlo/2)**2
     return R * 2 * math.asin(math.sqrt(a))
 
 def cat_label(cat_key, lang="FR"):
@@ -213,17 +189,11 @@ def cat_label(cat_key, lang="FR"):
 def day_label(idx, lang="FR"):
     return DAYS_AR[idx] if lang == "AR" else DAYS_FR[idx].capitalize()
 
-def fuel_list_fr():
-    return [(code, fr) for code, fr, _ in FUELS]
-
-def fuel_list_ar():
-    return [(code, ar) for code, _, ar in FUELS]
-
 def fuel_list(lang):
-    return fuel_list_ar() if lang == "AR" else fuel_list_fr()
+    return [(c, ar if lang=="AR" else fr) for c, fr, ar in FUELS]
 
 def status_list(lang):
-    return [(code, ar if lang == "AR" else fr) for code, fr, ar in STATUSES]
+    return [(c, ar if lang=="AR" else fr) for c, fr, ar in STATUSES]
 
 
 # ─── OSM ──────────────────────────────────────────────────────────────────────
@@ -379,9 +349,171 @@ def logout():
         st.session_state.pop(k, None)
 
 
+# ─── CSS RESPONSIVE ───────────────────────────────────────────────────────────
+
+def inject_responsive_css(lang):
+    rtl = "direction:rtl; text-align:right;" if lang == "AR" else ""
+    st.markdown(f"""
+    <style>
+    /* ── Polices & base ─────────────────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+    html, body, [class*="css"] {{
+        font-family: {'Cairo, sans-serif' if lang == 'AR' else 'Inter, sans-serif'};
+        {rtl}
+    }}
+
+    /* ── Sidebar ────────────────────────────────────────── */
+    [data-testid="stSidebar"] {{
+        min-width: 220px !important;
+        max-width: 260px !important;
+    }}
+    [data-testid="stSidebar"] > div:first-child {{
+        padding: 1rem 0.8rem;
+    }}
+
+    /* ── Contenu principal — padding réduit sur mobile ──── */
+    .block-container {{
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        padding-top: 1.2rem !important;
+        max-width: 100% !important;
+        {rtl}
+    }}
+
+    /* ── Titres ─────────────────────────────────────────── */
+    h1 {{ font-size: clamp(1.2rem, 4vw, 1.8rem) !important; line-height: 1.3; }}
+    h2 {{ font-size: clamp(1rem, 3vw, 1.4rem) !important; }}
+    h3 {{ font-size: clamp(0.95rem, 2.5vw, 1.2rem) !important; }}
+
+    /* ── Boutons — tactile friendly ─────────────────────── */
+    .stButton > button {{
+        min-height: 44px;
+        font-size: 15px;
+        border-radius: 8px;
+        width: 100%;
+        touch-action: manipulation;
+    }}
+
+    /* ── Inputs — plus grands sur mobile ────────────────── */
+    input, textarea, select {{
+        font-size: 16px !important; /* évite le zoom iOS */
+        min-height: 44px;
+    }}
+
+    /* ── Selectbox ──────────────────────────────────────── */
+    [data-testid="stSelectbox"] > div {{
+        min-height: 44px;
+    }}
+
+    /* ── Radio buttons — espacement tactile ─────────────── */
+    [data-testid="stRadio"] label {{
+        padding: 6px 10px;
+        cursor: pointer;
+    }}
+
+    /* ── Tabs — scrollables sur petits écrans ───────────── */
+    [data-testid="stTabs"] [role="tablist"] {{
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }}
+    [data-testid="stTabs"] [role="tab"] {{
+        white-space: nowrap;
+        min-width: fit-content;
+        padding: 8px 14px;
+        font-size: 14px;
+    }}
+
+    /* ── Dataframe — scroll horizontal ──────────────────── */
+    [data-testid="stDataFrame"] {{
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }}
+
+    /* ── Cards / containers ─────────────────────────────── */
+    [data-testid="stVerticalBlockBorderWrapper"] {{
+        border-radius: 10px !important;
+        padding: 0.8rem !important;
+    }}
+
+    /* ── Colonnes : stack sur mobile < 640px ────────────── */
+    @media (max-width: 640px) {{
+        /* Carte pleine largeur */
+        iframe {{
+            width: 100% !important;
+        }}
+
+        /* Sidebar repliée par défaut — Streamlit le gère,
+           on s'assure que les éléments ne débordent pas */
+        [data-testid="stSidebar"] {{
+            min-width: 0 !important;
+        }}
+
+        /* Colonnes en stack */
+        [data-testid="column"] {{
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+        }}
+
+        /* Titre plus compact */
+        h1 {{ font-size: 1.1rem !important; }}
+
+        /* Bouton chercher pleine largeur */
+        .stButton > button {{
+            font-size: 16px;
+            padding: 12px;
+        }}
+
+        /* Supprimer les marges excessives */
+        .block-container {{
+            padding: 0.6rem !important;
+        }}
+
+        /* number_input : stack label + input */
+        [data-testid="stNumberInput"] {{
+            flex-direction: column;
+        }}
+    }}
+
+    /* ── Tablette 641–1024px ─────────────────────────────── */
+    @media (min-width: 641px) and (max-width: 1024px) {{
+        [data-testid="column"] {{
+            min-width: 45% !important;
+        }}
+        h1 {{ font-size: 1.4rem !important; }}
+    }}
+
+    /* ── Expander ────────────────────────────────────────── */
+    [data-testid="stExpander"] summary {{
+        font-size: 15px;
+        padding: 10px 0;
+    }}
+
+    /* ── Success / warning / error ───────────────────────── */
+    [data-testid="stAlert"] {{
+        border-radius: 8px;
+        font-size: 14px;
+    }}
+
+    /* ── Divider ─────────────────────────────────────────── */
+    hr {{ margin: 0.6rem 0 !important; }}
+
+    /* ── Sélecteur de langue ─────────────────────────────── */
+    #lang-selector {{
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+
 # ─── CARTE LEAFLET ────────────────────────────────────────────────────────────
 
-def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=560):
+def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=500):
     markers_js = ""
     for _, s in stations_df.iterrows():
         sid  = int(s["id"])
@@ -401,10 +533,10 @@ def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=5
             fname = f_ar if lang == "AR" else f_fr
             stt   = a.get(f_code, {}).get("status")
             upd   = a.get(f_code, {}).get("updated_at", "")
-            upd_s = f" <small style='color:#888'>({upd[:10]})</small>" if upd else ""
+            upd_s = f"<small style='color:#888'> ({upd[:10]})</small>" if upd else ""
             em    = status_emoji(stt) if stt else "•"
             lab   = status_label(stt, lang) if stt else ("<i>غير مسجل</i>" if lang=="AR" else "<i>Non renseigné</i>")
-            rows += f"<tr><td style='padding:2px 8px 2px 0'>{fname}</td><td>{em} {lab}{upd_s}</td></tr>"
+            rows += f"<tr><td style='padding:3px 10px 3px 0;white-space:nowrap'>{fname}</td><td>{em} {lab}{upd_s}</td></tr>"
 
         ann = get_announcements(station_id=sid, active_only=True)
         ann_html = ""
@@ -428,18 +560,17 @@ def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=5
 
         border = "border:3px solid gold;" if sid == highlight_sid else ""
         rtl    = "direction:rtl;text-align:right;" if lang=="AR" else ""
+        th_align = "right" if lang=="AR" else "left"
 
         popup = (
-            f"<div style='min-width:260px;font-family:sans-serif;{border}{rtl}'>"
-            f"<h4 style='margin:0 0 4px'>⛽ {name}</h4>"
-            f"<small style='color:#555'>{op} — {addr}</small>"
+            f"<div style='min-width:240px;max-width:300px;font-family:sans-serif;{border}{rtl}'>"
+            f"<h4 style='margin:0 0 4px;font-size:15px'>⛽ {name}</h4>"
+            f"<small style='color:#555'>{op}{' — ' if op else ''}{addr}</small>"
             f"<hr style='margin:6px 0'/>"
             f"<table style='font-size:13px;width:100%'>"
-            f"<tr><th style='text-align:{'right' if lang=='AR' else 'left'}'>"
-            f"{'الوقود' if lang=='AR' else 'Carburant'}</th>"
-            f"<th style='text-align:{'right' if lang=='AR' else 'left'}'>"
-            f"{'الحالة' if lang=='AR' else 'Statut'}</th></tr>{rows}</table>"
-            f"{hours_html}{ann_html}</div>"
+            f"<tr><th style='text-align:{th_align}'>{'الوقود' if lang=='AR' else 'Carburant'}</th>"
+            f"<th style='text-align:{th_align}'>{'الحالة' if lang=='AR' else 'Statut'}</th></tr>"
+            f"{rows}</table>{hours_html}{ann_html}</div>"
         ).replace("`","'").replace("\n"," ")
 
         svg = (
@@ -454,68 +585,94 @@ def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=5
         markers_js += f"""
         L.marker([{s['lat']}, {s['lon']}], {{
             icon: L.divIcon({{html:`{svg}`,iconSize:[34,44],iconAnchor:[17,44],popupAnchor:[0,-44],className:''}})
-        }}).bindPopup(`{popup}`,{{maxWidth:320}})
+        }}).bindPopup(`{popup}`,{{maxWidth:310}})
           .bindTooltip('⛽ {name}',{{direction:'top'}})
           .addTo(map);
         """
 
-    legend_available = "متوفر" if lang=="AR" else "Disponible"
-    legend_rupture   = "نفاد"  if lang=="AR" else "Rupture"
-    legend_uncertain = "غير محدد" if lang=="AR" else "Incertain"
-    legend_unknown   = "غير مسجل" if lang=="AR" else "Non renseigné"
-    legend_title     = "المفتاح" if lang=="AR" else "Légende"
-    legend_rtl       = "direction:rtl;text-align:right;" if lang=="AR" else ""
-
-    geo_btn_lbl  = "📍 Ma position" if lang=="FR" else "📍 موقعي"
-    geo_err_lbl  = "Position non disponible" if lang=="FR" else "الموقع غير متاح"
+    leg_avail = "متوفر"    if lang=="AR" else "Disponible"
+    leg_rupt  = "نفاد"     if lang=="AR" else "Rupture"
+    leg_inc   = "غير محدد" if lang=="AR" else "Incertain"
+    leg_unk   = "غير مسجل" if lang=="AR" else "Non renseigné"
+    leg_ttl   = "المفتاح"  if lang=="AR" else "Légende"
+    leg_rtl   = "direction:rtl;text-align:right;" if lang=="AR" else ""
+    leg_side  = "right" if lang=="AR" else "left"
+    geo_lbl   = t("map_locate", lang)
+    geo_err   = t("geo_error", lang)
+    here_lbl  = t("here", lang)
 
     html = f"""<!DOCTYPE html><html><head>
     <meta charset='utf-8'/>
+    <meta name='viewport' content='width=device-width, initial-scale=1'/>
     <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'/>
     <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
     <style>
-      html,body,#map{{margin:0;padding:0;height:100%;width:100%;}}
-      .legend{{position:absolute;bottom:24px;{'right' if lang=='AR' else 'left'}:12px;z-index:1000;
-               background:white;padding:8px 12px;border-radius:8px;border:1px solid #ccc;
-               font-size:12px;box-shadow:2px 2px 6px rgba(0,0,0,.2);line-height:1.8;{legend_rtl}}}
-      .geo-btn{{position:absolute;top:80px;right:10px;z-index:1000;
-                background:white;border:2px solid #ccc;border-radius:6px;
-                padding:5px 10px;font-size:13px;cursor:pointer;box-shadow:1px 1px 4px rgba(0,0,0,.2)}}
-      .geo-btn:hover{{background:#f0f0f0}}
+      *{{ box-sizing:border-box; margin:0; padding:0; }}
+      html,body,#map{{ height:100%; width:100%; }}
+      .legend{{
+        position:absolute; bottom:20px; {leg_side}:10px; z-index:1000;
+        background:white; padding:8px 12px; border-radius:8px;
+        border:1px solid #ccc; font-size:12px;
+        box-shadow:2px 2px 6px rgba(0,0,0,.2);
+        line-height:1.9; {leg_rtl}
+        max-width: 140px;
+      }}
+      .geo-btn{{
+        position:absolute; top:76px; right:10px; z-index:1000;
+        background:white; border:2px solid rgba(0,0,0,.2);
+        border-radius:6px; padding:6px 12px;
+        font-size:13px; font-weight:600; cursor:pointer;
+        box-shadow:1px 1px 4px rgba(0,0,0,.2);
+        touch-action:manipulation;
+        white-space:nowrap;
+      }}
+      .geo-btn:hover{{ background:#f0f0f0; }}
+      .geo-btn:active{{ background:#e0e0e0; }}
+      /* Popup responsive */
+      .leaflet-popup-content{{ max-width:90vw !important; }}
+      @media(max-width:480px){{
+        .legend{{ font-size:11px; padding:6px 8px; }}
+        .geo-btn{{ font-size:12px; padding:5px 8px; top:70px; }}
+      }}
     </style>
     </head><body>
     <div id='map'></div>
-    <button class='geo-btn' onclick='locateMe()' title='{geo_btn_lbl}'>{geo_btn_lbl}</button>
+    <button class='geo-btn' onclick='locateMe()'>{geo_lbl}</button>
     <div class='legend'>
-      <b>{legend_title}</b><br>
-      <span style='color:#16a34a'>●</span> {legend_available}<br>
-      <span style='color:#dc2626'>●</span> {legend_rupture}<br>
-      <span style='color:#d97706'>●</span> {legend_uncertain}<br>
-      <span style='color:#6b7280'>●</span> {legend_unknown}
+      <b>{leg_ttl}</b><br>
+      <span style='color:#16a34a;font-size:16px'>●</span> {leg_avail}<br>
+      <span style='color:#dc2626;font-size:16px'>●</span> {leg_rupt}<br>
+      <span style='color:#d97706;font-size:16px'>●</span> {leg_inc}<br>
+      <span style='color:#6b7280;font-size:16px'>●</span> {leg_unk}
     </div>
     <script>
-      var map = L.map('map',{{zoomControl:true}}).setView([18.086,-15.965],13);
+      var map = L.map('map',{{zoomControl:true,tap:true}}).setView([18.086,-15.965],13);
       L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png',{{
-        attribution:'© OpenStreetMap contributors',maxZoom:19
+        attribution:'© OpenStreetMap',maxZoom:19
       }}).addTo(map);
       {markers_js}
 
       var userMarker = null;
       function locateMe() {{
-        if (!navigator.geolocation) {{ alert('{geo_err_lbl}'); return; }}
+        if (!navigator.geolocation) {{ alert('{geo_err}'); return; }}
+        var btn = document.querySelector('.geo-btn');
+        btn.disabled = true; btn.style.opacity = '0.6';
         navigator.geolocation.getCurrentPosition(
           function(pos) {{
-            var lat = pos.coords.latitude;
-            var lon = pos.coords.longitude;
-            map.setView([lat, lon], 15);
+            var lat = pos.coords.latitude, lon = pos.coords.longitude;
+            map.setView([lat,lon],15);
             if (userMarker) map.removeLayer(userMarker);
-            userMarker = L.circleMarker([lat, lon], {{
-              radius: 10, fillColor: '#3b82f6', color: 'white',
-              weight: 3, opacity: 1, fillOpacity: 1
-            }}).addTo(map).bindPopup('{'أنت هنا' if lang=='AR' else 'Vous êtes ici'}').openPopup();
+            userMarker = L.circleMarker([lat,lon],{{
+              radius:10, fillColor:'#3b82f6', color:'white',
+              weight:3, opacity:1, fillOpacity:1
+            }}).addTo(map).bindPopup('{here_lbl}').openPopup();
+            btn.disabled = false; btn.style.opacity = '1';
           }},
-          function() {{ alert('{geo_err_lbl}'); }},
-          {{enableHighAccuracy: true, timeout: 10000}}
+          function() {{
+            alert('{geo_err}');
+            btn.disabled = false; btn.style.opacity = '1';
+          }},
+          {{enableHighAccuracy:true, timeout:10000}}
         );
       }}
     </script>
@@ -532,59 +689,39 @@ st.set_page_config(page_title="CarbuRIM", page_icon="⛽", layout="wide")
 init_db()
 stations = get_stations()
 
-# ─── SIDEBAR — Sélecteur de langue EN PREMIER ─────────────────────────────────
+# ─── SIDEBAR ──────────────────────────────────────────────────────────────────
 with st.sidebar:
-    # Sélecteur langue tout en haut
     lang_choice = st.radio(
-        "🌐",
-        ["🇫🇷 Français", "🇲🇷 عربي"],
-        horizontal=True,
-        key="lang_radio",
-        label_visibility="collapsed"
+        "🌐", ["🇫🇷 Français", "🇲🇷 عربي"],
+        horizontal=True, key="lang_radio", label_visibility="collapsed"
     )
     lang = "AR" if "عربي" in lang_choice else "FR"
     st.session_state["lang"] = lang
 
     st.divider()
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Flag_of_Mauritania.svg/320px-Flag_of_Mauritania.svg.png", width=80)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Flag_of_Mauritania.svg/320px-Flag_of_Mauritania.svg.png", width=70)
     st.title("⛽ CarbuRIM")
 
-    # Navigation traduite
-    nav_options = [
-        t("nav_map",     lang),
-        t("nav_ann",     lang),
-        t("nav_station", lang),
-        t("nav_admin",   lang),
-    ]
-    page = st.radio("Navigation", nav_options, label_visibility="collapsed")
+    nav_options = [t("nav_map",lang), t("nav_ann",lang), t("nav_station",lang), t("nav_admin",lang)]
+    page = st.radio("Nav", nav_options, label_visibility="collapsed")
     st.divider()
 
     if page == t("nav_map", lang):
-        st.header(t("filter_title", lang))
-        fuel_all   = t("filter_all", lang)
-        status_all = t("filter_all", lang)
-        fuel_filter = st.selectbox(
-            t("filter_fuel", lang),
-            [fuel_all] + [fn for _, fn in fuel_list(lang)]
-        )
-        status_filter = st.selectbox(
-            t("filter_status", lang),
-            [status_all] + [sn for _, sn in status_list(lang)]
-        )
+        st.caption(t("filter_title", lang))
+        fuel_all_lbl   = t("filter_all", lang)
+        status_all_lbl = t("filter_all", lang)
+        fuel_filter    = st.selectbox(t("filter_fuel",lang),   [fuel_all_lbl]   + [fn for _,fn in fuel_list(lang)])
+        status_filter  = st.selectbox(t("filter_status",lang), [status_all_lbl] + [sn for _,sn in status_list(lang)])
         st.divider()
-        if st.button(t("refresh_osm", lang)):
+        if st.button(t("refresh_osm", lang), use_container_width=True):
             with st.spinner(t("osm_loading", lang)):
                 df_osm = overpass_fetch_stations()
                 upsert_stations(df_osm)
             st.success(f"{len(df_osm)} {t('refresh_ok', lang)}")
             st.rerun()
 
-# RTL global si arabe
-if lang == "AR":
-    st.markdown("""<style>
-        .block-container { direction: rtl; text-align: right; }
-        h1,h2,h3,p,label,div { direction: rtl; text-align: right; }
-    </style>""", unsafe_allow_html=True)
+# ─── CSS GLOBAL ───────────────────────────────────────────────────────────────
+inject_responsive_css(lang)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -607,84 +744,58 @@ if page == t("nav_map", lang):
     with st.container(border=True):
         st.subheader(t("nearest_title", lang))
 
-        col_a, col_b = st.columns([1, 2])
-        with col_a:
-            fuel_names       = [fn for _, fn in fuel_list(lang)]
-            fuel_search_name = st.selectbox(t("fuel_wanted", lang), fuel_names, key="fs")
+        fuel_names       = [fn for _,fn in fuel_list(lang)]
+        fuel_search_name = st.selectbox(t("fuel_wanted", lang), fuel_names, key="fs")
 
-        with col_b:
-            # Composant HTML géolocalisation navigateur
-            geo_label    = "📍 Utiliser ma position GPS" if lang=="FR" else "📍 استخدام موقعي GPS"
-            geo_wait     = "Localisation en cours…"      if lang=="FR" else "جارٍ تحديد الموقع…"
-            geo_error    = "Impossible d'obtenir votre position. Activez la géolocalisation." \
-                           if lang=="FR" else "تعذّر تحديد موقعك. فعّل خدمة الموقع."
-            geo_denied   = "Permission refusée. Veuillez autoriser la géolocalisation." \
-                           if lang=="FR" else "تم رفض الإذن. يرجى السماح بالوصول إلى الموقع."
+        # Géolocalisation
+        geo_html = f"""
+        <div style="font-family:sans-serif;padding:4px 0 8px 0">
+          <button id="geoBtn" onclick="getLocation()" style="
+            background:#1d6f42;color:white;border:none;border-radius:8px;
+            padding:12px 18px;font-size:15px;cursor:pointer;
+            width:100%;touch-action:manipulation;min-height:44px;">
+            {t('geo_btn', lang)}
+          </button>
+          <div id="geoStatus" style="margin-top:8px;font-size:13px;color:#555;min-height:20px"></div>
+        </div>
+        <script>
+        function getLocation() {{
+          var btn = document.getElementById('geoBtn');
+          var status = document.getElementById('geoStatus');
+          if (!navigator.geolocation) {{
+            status.style.color='red'; status.innerText='{t("geo_error", lang)}'; return;
+          }}
+          btn.disabled=true; btn.innerText='{t("geo_wait", lang)}';
+          navigator.geolocation.getCurrentPosition(
+            function(pos) {{
+              var lat=pos.coords.latitude.toFixed(6), lon=pos.coords.longitude.toFixed(6);
+              status.style.color='#16a34a';
+              status.innerText='✅ '+lat+', '+lon;
+              btn.innerText='{t("geo_btn", lang)}'; btn.disabled=false;
+              window.parent.postMessage({{type:'streamlit:setComponentValue',value:lat+','+lon}},'*');
+            }},
+            function(err) {{
+              status.style.color='red';
+              status.innerText=err.code===1?'{t("geo_denied", lang)}':'{t("geo_error", lang)}';
+              btn.innerText='{t("geo_btn", lang)}'; btn.disabled=false;
+            }},
+            {{enableHighAccuracy:true,timeout:10000}}
+          );
+        }}
+        </script>"""
+        components.html(geo_html, height=80)
 
-            geo_html = f"""
-            <div style="font-family:sans-serif;padding:4px 0">
-              <button id="geoBtn" onclick="getLocation()" style="
-                background:#1d6f42;color:white;border:none;border-radius:6px;
-                padding:8px 16px;font-size:14px;cursor:pointer;width:100%">
-                {geo_label}
-              </button>
-              <div id="geoStatus" style="margin-top:6px;font-size:13px;color:#555"></div>
-              <input type="hidden" id="geoLat" value="">
-              <input type="hidden" id="geoLon" value="">
-            </div>
-            <script>
-            function getLocation() {{
-              var btn = document.getElementById('geoBtn');
-              var status = document.getElementById('geoStatus');
-              if (!navigator.geolocation) {{
-                status.style.color='red';
-                status.innerText = '{geo_error}';
-                return;
-              }}
-              btn.disabled = true;
-              btn.innerText = '{geo_wait}';
-              navigator.geolocation.getCurrentPosition(
-                function(pos) {{
-                  var lat = pos.coords.latitude.toFixed(6);
-                  var lon = pos.coords.longitude.toFixed(6);
-                  document.getElementById('geoLat').value = lat;
-                  document.getElementById('geoLon').value = lon;
-                  status.style.color='green';
-                  status.innerText = '✅ ' + lat + ', ' + lon;
-                  btn.innerText = '{geo_label}';
-                  btn.disabled = false;
-                  // Envoyer à Streamlit via query params
-                  window.parent.postMessage({{
-                    type: 'streamlit:setComponentValue',
-                    value: lat + ',' + lon
-                  }}, '*');
-                }},
-                function(err) {{
-                  status.style.color='red';
-                  status.innerText = err.code === 1 ? '{geo_denied}' : '{geo_error}';
-                  btn.innerText = '{geo_label}';
-                  btn.disabled = false;
-                }},
-                {{enableHighAccuracy: true, timeout: 10000}}
-              );
-            }}
-            </script>
-            """
-            geo_result = components.html(geo_html, height=90)
-
-            # Coordonnées manuelles (fallback)
-            st.caption("— ou entrez manuellement —" if lang=="FR" else "— أو أدخل يدوياً —")
-            c1, c2 = st.columns(2)
-            user_lat = c1.number_input(t("my_lat", lang), value=18.0860, format="%.6f", key="ulat")
-            user_lon = c2.number_input(t("my_lon", lang), value=-15.9650, format="%.6f", key="ulon")
-
-        search = st.button(t("search_btn", lang), use_container_width=False)
+        st.caption(t("geo_or", lang))
+        c1, c2 = st.columns(2)
+        user_lat = c1.number_input(t("my_lat", lang), value=18.0860, format="%.6f", key="ulat")
+        user_lon = c2.number_input(t("my_lon", lang), value=-15.9650, format="%.6f", key="ulon")
+        search   = st.button(t("search_btn", lang), use_container_width=True)
 
     highlight_sid = st.session_state.get("highlight_sid")
     nearest_info  = st.session_state.get("nearest_info")
 
     if search:
-        fuel_code = next((code for code, fn in fuel_list(lang) if fn == fuel_search_name), None)
+        fuel_code  = next((code for code,fn in fuel_list(lang) if fn == fuel_search_name), None)
         candidates = []
         for _, s in stations.iterrows():
             sid = int(s["id"])
@@ -698,20 +809,16 @@ if page == t("nav_map", lang):
             best = candidates[0]
             st.session_state["highlight_sid"] = best[1]
             st.session_state["nearest_info"]  = best
-            highlight_sid = best[1]
-            nearest_info  = best
+            highlight_sid, nearest_info = best[1], best
         else:
             st.warning(f"{t('no_nearest', lang)} **{fuel_search_name}** {t('no_nearest2', lang)}")
-            for k in ["highlight_sid","nearest_info"]:
-                st.session_state.pop(k, None)
+            for k in ["highlight_sid","nearest_info"]: st.session_state.pop(k, None)
             highlight_sid = nearest_info = None
 
     if nearest_info:
         dist, sid, name, nlat, nlon, addr, op = nearest_info
-        if lang == "AR":
-            st.success(f"⛽ **{name}** — على بُعد **{dist:.2f} كم** (علامة ذهبية على الخريطة)")
-        else:
-            st.success(f"⛽ **{name}** — à **{dist:.2f} km** (marqueur doré sur la carte)")
+        km_txt = f"{dist:.2f} كم" if lang=="AR" else f"{dist:.2f} km"
+        st.success(f"⛽ **{name}** — {'على بُعد' if lang=='AR' else 'à'} **{km_txt}**")
         with st.expander(t("details_btn", lang)):
             if addr: st.write(f"📍 {addr}")
             if op:   st.write(f"🏢 {op}")
@@ -719,47 +826,37 @@ if page == t("nav_map", lang):
             if h:
                 today_idx = datetime.now().weekday()
                 val = h.get(DAYS_FR[today_idx], "")
-                if val:
-                    st.write(f"🕐 {t('today', lang)} ({day_label(today_idx, lang)}) : {val}")
+                if val: st.write(f"🕐 {t('today',lang)} ({day_label(today_idx,lang)}) : {val}")
             a = avail_grp.get(sid, {})
             for f_code, f_fr, f_ar in FUELS:
                 stt = a.get(f_code, {}).get("status")
-                if stt:
-                    st.write(f"{status_emoji(stt)} {f_ar if lang=='AR' else f_fr} : {status_label(stt, lang)}")
+                if stt: st.write(f"{status_emoji(stt)} {f_ar if lang=='AR' else f_fr} : {status_label(stt, lang)}")
 
     st.divider()
 
-    col1, col2 = st.columns([2,1], gap="large")
-    with col1:
-        st.subheader(t("map_subtitle", lang))
-        st.caption(t("map_caption", lang))
-        build_leaflet_map(stations, avail_grp, lang, highlight_sid=highlight_sid)
+    # ── Carte + tableau (stack sur mobile) ────────────────────────────────────
+    st.subheader(t("map_subtitle", lang))
+    st.caption(t("map_caption", lang))
+    build_leaflet_map(stations, avail_grp, lang, highlight_sid=highlight_sid, height=460)
 
-    with col2:
-        st.subheader(t("table_title", lang))
-        df = stations.merge(avail, left_on="id", right_on="station_id", how="left")
-        df_view = df.copy()
-
-        # Filtres traduits → reconvertir en code
-        fuel_all_label   = t("filter_all", lang)
-        status_all_label = t("filter_all", lang)
-        if fuel_filter != fuel_all_label:
-            fuel_code_filter = next((c for c, fn in fuel_list(lang) if fn == fuel_filter), None)
-            if fuel_code_filter: df_view = df_view[df_view["fuel"] == fuel_code_filter]
-        if status_filter != status_all_label:
-            status_code_filter = next((c for c, sn in status_list(lang) if sn == status_filter), None)
-            if status_code_filter: df_view = df_view[df_view["status"] == status_code_filter]
-
-        if not df_view.empty:
-            show = df_view[["name","fuel","status","updated_at","updated_by"]].copy()
-            show["fuel"]   = show["fuel"].apply(lambda c: fuel_label(c, lang))
-            show["status"] = show["status"].apply(lambda c: status_label(c, lang))
-            show.columns   = [t("col_station",lang), t("col_fuel",lang),
-                               t("col_status",lang), t("col_updated",lang), t("col_by",lang)]
-            st.dataframe(show.dropna(subset=[t("col_status",lang)]),
-                         use_container_width=True, height=520)
-        else:
-            st.info(t("no_data", lang))
+    st.divider()
+    st.subheader(t("table_title", lang))
+    df      = stations.merge(avail, left_on="id", right_on="station_id", how="left")
+    df_view = df.copy()
+    if fuel_filter != fuel_all_lbl:
+        fc_f = next((c for c,fn in fuel_list(lang) if fn == fuel_filter), None)
+        if fc_f: df_view = df_view[df_view["fuel"] == fc_f]
+    if status_filter != status_all_lbl:
+        sc_f = next((c for c,sn in status_list(lang) if sn == status_filter), None)
+        if sc_f: df_view = df_view[df_view["status"] == sc_f]
+    if not df_view.empty:
+        show = df_view[["name","fuel","status","updated_at"]].copy()
+        show["fuel"]   = show["fuel"].apply(lambda c: fuel_label(c, lang))
+        show["status"] = show["status"].apply(lambda c: status_label(c, lang))
+        show.columns   = [t("col_station",lang), t("col_fuel",lang), t("col_status",lang), t("col_updated",lang)]
+        st.dataframe(show.dropna(subset=[t("col_status",lang)]), use_container_width=True, height=300)
+    else:
+        st.info(t("no_data", lang))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -779,8 +876,8 @@ elif page == t("nav_ann", lang):
         for _, row in ann.iterrows():
             dt = row["published_at"][:10] if row["published_at"] else ""
             with st.container(border=True):
-                st.markdown(f"**{cat_label(row['category'], lang)} — {row['title']}**")
-                st.markdown(f"🏪 *{row['station_name']}* &nbsp;|&nbsp; 📅 {dt}")
+                st.markdown(f"**{cat_label(row['category'],lang)} — {row['title']}**")
+                st.caption(f"🏪 {row['station_name']}  •  📅 {dt}")
                 st.markdown(row["body"])
 
 
@@ -794,14 +891,13 @@ elif page == t("nav_station", lang):
         with st.form("login_form"):
             username  = st.text_input(t("login_user", lang))
             password  = st.text_input(t("login_pass", lang), type="password")
-            submitted = st.form_submit_button(t("login_btn", lang))
+            submitted = st.form_submit_button(t("login_btn", lang), use_container_width=True)
         if submitted:
             sid = authenticate(username, password)
             if sid:
                 with db() as con:
                     row = con.execute("SELECT name FROM stations WHERE id=?", (sid,)).fetchone()
-                st.session_state.update({"station_logged_in": True,
-                                         "station_id": sid,
+                st.session_state.update({"station_logged_in": True, "station_id": sid,
                                          "station_name": row[0] if row else f"Station #{sid}"})
                 st.rerun()
             else:
@@ -809,10 +905,12 @@ elif page == t("nav_station", lang):
     else:
         sid   = st.session_state["station_id"]
         sname = st.session_state["station_name"]
-        st.title(f"🏪 {sname}")
-        _, col_out = st.columns([4,1])
+        col_title, col_out = st.columns([3,1])
+        col_title.title(f"🏪 {sname}")
         with col_out:
-            if st.button(t("logout_btn", lang)): logout(); st.rerun()
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button(t("logout_btn", lang), use_container_width=True):
+                logout(); st.rerun()
 
         tab1, tab2, tab3 = st.tabs([t("tab_fuels",lang), t("tab_ann",lang), t("tab_hours",lang)])
 
@@ -822,34 +920,34 @@ elif page == t("nav_station", lang):
             av_s = av[av["station_id"]==sid] if not av.empty else pd.DataFrame()
             av_d = av_s.set_index("fuel")["status"].to_dict() if not av_s.empty else {}
             sopts = [code for code,_,_ in STATUSES]
-            st.markdown(t("fuel_select_info", lang))
+            st.caption(t("fuel_select_info", lang))
             with st.form("fuel_form"):
                 ns = {}
                 for fc, f_fr, f_ar in FUELS:
                     fname = f_ar if lang=="AR" else f_fr
                     cur   = av_d.get(fc, "INCERTAIN")
                     idx   = sopts.index(cur) if cur in sopts else 2
-                    cf, cs = st.columns([2,3])
-                    cf.markdown(f"**{fname}**")
-                    with cs:
-                        ns[fc] = st.radio(fname, sopts, index=idx,
-                                          format_func=lambda c: status_label(c, lang),
-                                          horizontal=True, label_visibility="collapsed", key=f"f_{fc}")
-                if st.form_submit_button(t("save_btn", lang)):
+                    st.markdown(f"**{fname}**")
+                    ns[fc] = st.radio(fname, sopts, index=idx,
+                                      format_func=lambda c: status_label(c, lang),
+                                      horizontal=True, label_visibility="collapsed", key=f"f_{fc}")
+                    st.divider()
+                if st.form_submit_button(t("save_btn", lang), use_container_width=True):
                     for fc, fs in ns.items():
                         set_status(sid, fc, fs, updated_by=sname)
                     st.success(t("save_ok", lang)); st.rerun()
-            st.divider()
-            st.markdown(f"**{t('current_state', lang)}**")
+
+            st.subheader(t("current_state", lang))
             fresh  = get_availability()
             av_now = fresh[fresh["station_id"]==sid] if not fresh.empty else pd.DataFrame()
             if not av_now.empty:
                 for _, row in av_now.iterrows():
-                    ca,cb,cc = st.columns([2,2,3])
-                    ca.write(fuel_label(row["fuel"], lang))
-                    cb.write(status_label(row["status"], lang))
-                    upd = row.get("updated_at","")
-                    cc.caption(f"{upd[:16].replace('T',' ')} UTC" if upd else "")
+                    with st.container(border=True):
+                        ca, cb = st.columns(2)
+                        ca.markdown(f"**{fuel_label(row['fuel'], lang)}**")
+                        cb.markdown(status_label(row["status"], lang))
+                        upd = row.get("updated_at","")
+                        if upd: st.caption(f"🕐 {upd[:16].replace('T',' ')} UTC")
             else:
                 st.info(t("no_status", lang))
 
@@ -859,33 +957,32 @@ elif page == t("nav_station", lang):
                 ann_cat   = st.selectbox(t("ann_cat",lang), list(CATEGORIES.keys()),
                                          format_func=lambda k: cat_label(k, lang))
                 ann_title = st.text_input(t("ann_ttl", lang))
-                ann_body  = st.text_area(t("ann_body", lang), height=100)
-                if st.form_submit_button(t("pub_btn", lang)):
+                ann_body  = st.text_area(t("ann_body", lang), height=120)
+                if st.form_submit_button(t("pub_btn", lang), use_container_width=True):
                     if ann_title.strip() and ann_body.strip():
                         add_announcement(sid, ann_title.strip(), ann_body.strip(), ann_cat)
                         st.success(t("pub_ok", lang)); st.rerun()
-                    else: st.warning(t("pub_warn", lang))
-            st.divider()
+                    else:
+                        st.warning(t("pub_warn", lang))
+
             st.subheader(t("my_ann", lang))
             my_ann = get_announcements(station_id=sid, active_only=False)
-            if my_ann.empty: st.info(t("no_ann", lang))
+            if my_ann.empty:
+                st.info(t("no_ann", lang))
             else:
                 for _, row in my_ann.iterrows():
                     active = bool(row["active"])
                     dt = row["published_at"][:16].replace("T"," ") if row["published_at"] else ""
                     with st.container(border=True):
-                        c1,c2,c3 = st.columns([4,1,1])
-                        with c1:
-                            st.markdown(f"**{cat_label(row['category'],lang)} — {row['title']}** {'🟢' if active else '🔴'}")
-                            st.caption(f"{t('published_on',lang)} {dt}")
-                            st.markdown(row["body"])
-                        with c2:
-                            lbl = t("deactivate",lang) if active else t("reactivate",lang)
-                            if st.button(lbl, key=f"tog_{row['id']}"):
-                                toggle_announcement(row["id"], 0 if active else 1); st.rerun()
-                        with c3:
-                            if st.button(t("delete",lang), key=f"del_{row['id']}"):
-                                delete_announcement(row["id"]); st.rerun()
+                        st.markdown(f"**{cat_label(row['category'],lang)} — {row['title']}** {'🟢' if active else '🔴'}")
+                        st.caption(f"{t('published_on',lang)} {dt}")
+                        st.markdown(row["body"])
+                        cb1, cb2 = st.columns(2)
+                        lbl = t("deactivate",lang) if active else t("reactivate",lang)
+                        if cb1.button(lbl, key=f"tog_{row['id']}", use_container_width=True):
+                            toggle_announcement(row["id"], 0 if active else 1); st.rerun()
+                        if cb2.button(t("delete",lang), key=f"del_{row['id']}", use_container_width=True):
+                            delete_announcement(row["id"]); st.rerun()
 
         with tab3:
             st.subheader(t("hours_title", lang))
@@ -895,13 +992,12 @@ elif page == t("nav_station", lang):
                 hi   = {}
                 cols = st.columns(2)
                 for i, day_fr in enumerate(DAYS_FR):
-                    with cols[i%2]:
-                        dlbl = DAYS_AR[i] if lang=="AR" else day_fr.capitalize()
-                        hi[day_fr] = st.text_input(dlbl,
-                                                    value=existing.get(day_fr,""),
+                    with cols[i % 2]:
+                        dlbl    = DAYS_AR[i] if lang=="AR" else day_fr.capitalize()
+                        hi[day_fr] = st.text_input(dlbl, value=existing.get(day_fr,""),
                                                     placeholder="07:00–22:00")
                 note = st.text_area(t("hours_note",lang), value=existing.get("note",""))
-                if st.form_submit_button(t("save_btn",lang)):
+                if st.form_submit_button(t("save_btn",lang), use_container_width=True):
                     save_opening_hours(sid, hi, note)
                     st.success(t("hours_saved",lang)); st.rerun()
             h = get_opening_hours(sid)
@@ -927,16 +1023,16 @@ elif page == t("nav_admin", lang):
         st.markdown(t("admin_info", lang))
         with st.form("admin_login"):
             pwd = st.text_input(t("admin_pass", lang), type="password")
-            if st.form_submit_button(t("admin_access", lang)):
+            if st.form_submit_button(t("admin_access", lang), use_container_width=True):
                 if pwd == ADMIN_PASSWORD:
                     st.session_state["admin_logged_in"] = True; st.rerun()
-                else: st.error(t("admin_error", lang))
+                else:
+                    st.error(t("admin_error", lang))
     else:
-        if st.button(t("admin_logout", lang)):
+        if st.button(t("admin_logout", lang), use_container_width=True):
             st.session_state.pop("admin_logged_in", None); st.rerun()
 
-        tab_a, tab_b, tab_c = st.tabs([
-            t("tab_create",lang), t("tab_accounts",lang), t("tab_osm",lang)])
+        tab_a, tab_b, tab_c = st.tabs([t("tab_create",lang), t("tab_accounts",lang), t("tab_osm",lang)])
 
         with tab_a:
             st.subheader(t("create_acc_title", lang))
@@ -949,19 +1045,21 @@ elif page == t("nav_admin", lang):
                     new_user  = st.text_input(t("username_lbl",lang))
                     new_pass  = st.text_input(t("pass_lbl",lang), type="password")
                     new_pass2 = st.text_input(t("confirm_lbl",lang), type="password")
-                    if st.form_submit_button(t("create_btn",lang)):
+                    if st.form_submit_button(t("create_btn",lang), use_container_width=True):
                         s_id = int(s_choice.split("id=")[1].replace(")",""))
                         if not new_user.strip():    st.error(t("err_empty_user",lang))
                         elif new_pass != new_pass2: st.error(t("err_pass_diff",lang))
                         elif len(new_pass) < 6:     st.error(t("err_pass_short",lang))
                         elif create_account(s_id, new_user, new_pass):
                             st.success(f"{t('acc_created',lang)} {s_choice.split(' (id=')[0]}.")
-                        else: st.error(t("err_duplicate",lang))
+                        else:
+                            st.error(t("err_duplicate",lang))
 
         with tab_b:
             st.subheader(t("existing_acc", lang))
             accounts = list_accounts()
-            if accounts.empty: st.info(t("no_accounts", lang))
+            if accounts.empty:
+                st.info(t("no_accounts", lang))
             else:
                 accounts.columns = [t("col_id",lang), t("col_username",lang),
                                      t("col_station_name",lang), t("col_created",lang)]
@@ -969,7 +1067,7 @@ elif page == t("nav_admin", lang):
 
         with tab_c:
             st.subheader(t("osm_title", lang))
-            if st.button(t("osm_btn", lang)):
+            if st.button(t("osm_btn", lang), use_container_width=True):
                 with st.spinner(t("osm_loading", lang)):
                     df_osm = overpass_fetch_stations()
                     upsert_stations(df_osm)
