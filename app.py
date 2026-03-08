@@ -382,32 +382,50 @@ def inject_responsive_css(lang):
         padding: 1rem 0.8rem;
     }}
 
-    /* Contenu principal */
+    /* Topbar Streamlit — masquée sur mobile pour gagner de l'espace */
+    @media (max-width: 640px) {{
+        header[data-testid="stHeader"] {{
+            display: none !important;
+        }}
+        /* Compenser le padding-top que la topbar prenait */
+        .block-container {{
+            padding-top: 0.5rem !important;
+        }}
+    }}
+
+    /* Contenu principal — desktop */
     .block-container {{
         padding-left: 1rem !important;
         padding-right: 1rem !important;
-        padding-top: 1.2rem !important;
+        padding-top: 2rem !important;
         max-width: 100% !important;
     }}
 
-    /* ── Titres ─────────────────────────────────────────── */
-    h1 {{ font-size: clamp(1.2rem, 4vw, 1.8rem) !important; line-height: 1.3; }}
-    h2 {{ font-size: clamp(1rem, 3vw, 1.4rem) !important; }}
-    h3 {{ font-size: clamp(0.95rem, 2.5vw, 1.2rem) !important; }}
+    /* ── Titres adaptatifs ──────────────────────────────── */
+    h1 {{
+        font-size: clamp(1.1rem, 5vw, 1.8rem) !important;
+        line-height: 1.3 !important;
+        margin-bottom: 0.6rem !important;
+        word-break: break-word;
+    }}
+    h2 {{ font-size: clamp(1rem, 3.5vw, 1.4rem) !important; }}
+    h3 {{ font-size: clamp(0.9rem, 3vw, 1.2rem) !important; }}
 
     /* ── Boutons — tactile friendly ─────────────────────── */
     .stButton > button {{
-        min-height: 44px;
+        min-height: 48px;
         font-size: 15px;
         border-radius: 8px;
         width: 100%;
         touch-action: manipulation;
+        font-family: {font};
     }}
 
-    /* ── Inputs — plus grands sur mobile ────────────────── */
+    /* ── Inputs — évite zoom iOS (font >= 16px) ─────────── */
     input, textarea, select {{
-        font-size: 16px !important; /* évite le zoom iOS */
+        font-size: 16px !important;
         min-height: 44px;
+        font-family: {font} !important;
     }}
 
     /* ── Selectbox ──────────────────────────────────────── */
@@ -428,6 +446,7 @@ def inject_responsive_css(lang):
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
     }}
+    [data-testid="stTabs"] [role="tablist"]::-webkit-scrollbar {{ display: none; }}
     [data-testid="stTabs"] [role="tab"] {{
         white-space: nowrap;
         min-width: fit-content;
@@ -447,47 +466,40 @@ def inject_responsive_css(lang):
         padding: 0.8rem !important;
     }}
 
-    /* ── Colonnes : stack sur mobile < 640px ────────────── */
+    /* ── MOBILE < 640px ─────────────────────────────────── */
     @media (max-width: 640px) {{
-        /* Carte pleine largeur */
         iframe {{
             width: 100% !important;
         }}
-
-        /* Sidebar repliée par défaut — Streamlit le gère,
-           on s'assure que les éléments ne débordent pas */
         [data-testid="stSidebar"] {{
             min-width: 0 !important;
         }}
-
-        /* Colonnes en stack */
+        /* Colonnes en stack vertical */
         [data-testid="column"] {{
             width: 100% !important;
             flex: 1 1 100% !important;
             min-width: 100% !important;
         }}
-
-        /* Titre plus compact */
-        h1 {{ font-size: 1.1rem !important; }}
-
-        /* Bouton chercher pleine largeur */
+        h1 {{ font-size: 1.15rem !important; padding-top: 0.2rem; }}
         .stButton > button {{
             font-size: 16px;
-            padding: 12px;
+            padding: 14px;
+            min-height: 52px;
         }}
-
-        /* Supprimer les marges excessives */
-        .block-container {{
-            padding: 0.6rem !important;
+        /* Caption et petits textes lisibles */
+        [data-testid="stCaptionContainer"] p {{
+            font-size: 13px !important;
         }}
-
-        /* number_input : stack label + input */
-        [data-testid="stNumberInput"] {{
-            flex-direction: column;
+        /* Alert messages */
+        [data-testid="stAlert"] {{
+            font-size: 14px;
+            padding: 10px 12px;
         }}
+        /* Subheader */
+        h3 {{ font-size: 1rem !important; }}
     }}
 
-    /* ── Tablette 641–1024px ─────────────────────────────── */
+    /* ── TABLETTE 641–1024px ─────────────────────────────── */
     @media (min-width: 641px) and (max-width: 1024px) {{
         [data-testid="column"] {{
             min-width: 45% !important;
@@ -501,21 +513,15 @@ def inject_responsive_css(lang):
         padding: 10px 0;
     }}
 
-    /* ── Success / warning / error ───────────────────────── */
+    /* ── Alerts ──────────────────────────────────────────── */
     [data-testid="stAlert"] {{
         border-radius: 8px;
         font-size: 14px;
     }}
 
     /* ── Divider ─────────────────────────────────────────── */
-    hr {{ margin: 0.6rem 0 !important; }}
+    hr {{ margin: 0.5rem 0 !important; }}
 
-    /* ── Sélecteur de langue ─────────────────────────────── */
-    #lang-selector {{
-        display: flex;
-        gap: 8px;
-        margin-bottom: 8px;
-    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -750,67 +756,96 @@ if page == t("nav_map", lang):
             avail_grp[int(sid)] = grp.set_index("fuel")[["status","updated_at"]].to_dict("index")
 
     # ── Recherche station la plus proche ──────────────────────────────────────
+    # Récupérer les coords GPS depuis les query params (soumis par le composant HTML)
+    qp = st.query_params
+    if "lat" in qp and "lon" in qp:
+        try:
+            st.session_state["gps_lat"] = float(qp["lat"])
+            st.session_state["gps_lon"] = float(qp["lon"])
+        except Exception:
+            pass
+
     with st.container(border=True):
         st.subheader(t("nearest_title", lang))
-
         fuel_names       = [fn for _,fn in fuel_list(lang)]
         fuel_search_name = st.selectbox(t("fuel_wanted", lang), fuel_names, key="fs")
 
-        # Géolocalisation GPS uniquement
-        geo_html = f"""
-        <div style="font-family:sans-serif;padding:4px 0 8px 0">
-          <button id="geoBtn" onclick="getLocation()" style="
-            background:#1d6f42;color:white;border:none;border-radius:8px;
-            padding:12px 18px;font-size:15px;cursor:pointer;
-            width:100%;touch-action:manipulation;min-height:44px;font-weight:600;">
-            {t('geo_btn', lang)}
-          </button>
-          <div id="geoStatus" style="margin-top:8px;font-size:13px;color:#555;min-height:22px"></div>
-        </div>
+        has_gps = "gps_lat" in st.session_state and "gps_lon" in st.session_state
+
+        # Bouton GPS — soumet les coordonnées via query params puis recharge la page
+        geo_label  = t("geo_btn",    lang)
+        geo_wait   = t("geo_wait",   lang)
+        geo_err    = t("geo_error",  lang)
+        geo_denied = t("geo_denied", lang)
+
+        geo_html = f"""<!DOCTYPE html><html><head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <style>
+          * {{ box-sizing:border-box; margin:0; padding:0; }}
+          body {{ font-family: {'Cairo,sans-serif' if lang=='AR' else 'Inter,sans-serif'};
+                 background:transparent; padding:4px 0; }}
+          #geoBtn {{
+            background:#1d6f42; color:white; border:none; border-radius:8px;
+            padding:13px 18px; font-size:15px; font-weight:600; cursor:pointer;
+            width:100%; touch-action:manipulation; min-height:48px;
+            display:flex; align-items:center; justify-content:center; gap:8px;
+          }}
+          #geoBtn:disabled {{ background:#6b9e82; cursor:not-allowed; }}
+          #geoBtn:active {{ background:#155a34; }}
+          #geoStatus {{
+            margin-top:8px; font-size:13px; min-height:20px; padding:2px 0;
+            {'text-align:right;' if lang=='AR' else ''}
+          }}
+        </style>
+        </head><body>
+        <button id="geoBtn" onclick="getLocation()">📍 {geo_label}</button>
+        <div id="geoStatus"></div>
         <script>
         function getLocation() {{
           var btn = document.getElementById('geoBtn');
-          var status = document.getElementById('geoStatus');
+          var st  = document.getElementById('geoStatus');
           if (!navigator.geolocation) {{
-            status.style.color='red'; status.innerText='{t("geo_error", lang)}'; return;
+            st.style.color='#dc2626'; st.innerText='{geo_err}'; return;
           }}
-          btn.disabled=true; btn.innerText='{t("geo_wait", lang)}';
-          status.style.color='#888'; status.innerText='...';
+          btn.disabled = true;
+          btn.innerHTML = '⏳ {geo_wait}';
+          st.style.color = '#888'; st.innerText = '...';
           navigator.geolocation.getCurrentPosition(
             function(pos) {{
-              var lat=pos.coords.latitude.toFixed(6), lon=pos.coords.longitude.toFixed(6);
-              status.style.color='#16a34a';
-              status.innerText='✅ '+lat+', '+lon;
-              btn.innerText='{t("geo_btn", lang)}'; btn.disabled=false;
-              window.parent.postMessage({{
-                type:'streamlit:setComponentValue',
-                value:lat+','+lon
-              }},'*');
+              var lat = pos.coords.latitude.toFixed(6);
+              var lon = pos.coords.longitude.toFixed(6);
+              st.style.color = '#16a34a';
+              st.innerText = '✅ ' + lat + ', ' + lon;
+              btn.disabled = false;
+              btn.innerHTML = '📍 {geo_label}';
+              // Soumettre les coords à Streamlit via query params → rechargement de page
+              var url = window.parent.location.href.split('?')[0];
+              window.parent.location.href = url + '?lat=' + lat + '&lon=' + lon;
             }},
             function(err) {{
-              status.style.color='red';
-              status.innerText=err.code===1?'{t("geo_denied", lang)}':'{t("geo_error", lang)}';
-              btn.innerText='{t("geo_btn", lang)}'; btn.disabled=false;
+              st.style.color = '#dc2626';
+              st.innerText = err.code === 1 ? '{geo_denied}' : '{geo_err}';
+              btn.disabled = false;
+              btn.innerHTML = '📍 {geo_label}';
             }},
-            {{enableHighAccuracy:true,timeout:10000}}
+            {{enableHighAccuracy: true, timeout: 12000, maximumAge: 30000}}
           );
         }}
-        </script>"""
-        geo_val = components.html(geo_html, height=85)
+        </script>
+        </body></html>"""
 
-        # Stocker les coordonnées reçues du composant
-        if geo_val and isinstance(geo_val, str) and "," in geo_val:
-            try:
-                lat_str, lon_str = geo_val.split(",")
-                st.session_state["gps_lat"] = float(lat_str)
-                st.session_state["gps_lon"] = float(lon_str)
-            except Exception:
-                pass
+        components.html(geo_html, height=90)
 
-        has_gps = "gps_lat" in st.session_state and "gps_lon" in st.session_state
         if has_gps:
-            gps_info = f"📍 {st.session_state['gps_lat']:.5f}, {st.session_state['gps_lon']:.5f}"
-            st.caption(gps_info)
+            lat_disp = st.session_state['gps_lat']
+            lon_disp = st.session_state['gps_lon']
+            st.success(f"📍 {lat_disp:.5f}, {lon_disp:.5f}")
+            if st.button("🗑️ " + ("Effacer ma position" if lang=="FR" else "مسح موقعي"), use_container_width=True):
+                st.session_state.pop("gps_lat", None)
+                st.session_state.pop("gps_lon", None)
+                st.query_params.clear()
+                st.rerun()
 
         search = st.button(
             t("search_btn", lang),
