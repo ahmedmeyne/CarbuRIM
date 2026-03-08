@@ -352,33 +352,42 @@ def logout():
 # ─── CSS RESPONSIVE ───────────────────────────────────────────────────────────
 
 def inject_responsive_css(lang):
-    rtl = "direction:rtl; text-align:right;" if lang == "AR" else ""
+    rtl_content = "direction:rtl; text-align:right;" if lang == "AR" else ""
+    font = "Cairo, sans-serif" if lang == "AR" else "Inter, sans-serif"
     st.markdown(f"""
     <style>
-    /* ── Polices & base ─────────────────────────────────── */
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
 
-    html, body, [class*="css"] {{
-        font-family: {'Cairo, sans-serif' if lang == 'AR' else 'Inter, sans-serif'};
-        {rtl}
-    }}
+    /* Police globale */
+    html, body, [class*="css"] {{ font-family: {font}; }}
 
-    /* ── Sidebar ────────────────────────────────────────── */
+    /* RTL uniquement sur le contenu — jamais sur sidebar ni layout */
+    .main .block-container {{ {rtl_content} }}
+    .main .block-container h1,
+    .main .block-container h2,
+    .main .block-container h3,
+    .main .block-container p,
+    .main .block-container label,
+    .main .block-container span,
+    .main .block-container div {{ font-family: {font}; }}
+
+    /* Sidebar : toujours à gauche, direction LTR forcée */
     [data-testid="stSidebar"] {{
+        direction: ltr !important;
         min-width: 220px !important;
         max-width: 260px !important;
+        font-family: {font};
     }}
     [data-testid="stSidebar"] > div:first-child {{
         padding: 1rem 0.8rem;
     }}
 
-    /* ── Contenu principal — padding réduit sur mobile ──── */
+    /* Contenu principal */
     .block-container {{
         padding-left: 1rem !important;
         padding-right: 1rem !important;
         padding-top: 1.2rem !important;
         max-width: 100% !important;
-        {rtl}
     }}
 
     /* ── Titres ─────────────────────────────────────────── */
@@ -747,16 +756,16 @@ if page == t("nav_map", lang):
         fuel_names       = [fn for _,fn in fuel_list(lang)]
         fuel_search_name = st.selectbox(t("fuel_wanted", lang), fuel_names, key="fs")
 
-        # Géolocalisation
+        # Géolocalisation GPS uniquement
         geo_html = f"""
         <div style="font-family:sans-serif;padding:4px 0 8px 0">
           <button id="geoBtn" onclick="getLocation()" style="
             background:#1d6f42;color:white;border:none;border-radius:8px;
             padding:12px 18px;font-size:15px;cursor:pointer;
-            width:100%;touch-action:manipulation;min-height:44px;">
+            width:100%;touch-action:manipulation;min-height:44px;font-weight:600;">
             {t('geo_btn', lang)}
           </button>
-          <div id="geoStatus" style="margin-top:8px;font-size:13px;color:#555;min-height:20px"></div>
+          <div id="geoStatus" style="margin-top:8px;font-size:13px;color:#555;min-height:22px"></div>
         </div>
         <script>
         function getLocation() {{
@@ -766,13 +775,17 @@ if page == t("nav_map", lang):
             status.style.color='red'; status.innerText='{t("geo_error", lang)}'; return;
           }}
           btn.disabled=true; btn.innerText='{t("geo_wait", lang)}';
+          status.style.color='#888'; status.innerText='...';
           navigator.geolocation.getCurrentPosition(
             function(pos) {{
               var lat=pos.coords.latitude.toFixed(6), lon=pos.coords.longitude.toFixed(6);
               status.style.color='#16a34a';
               status.innerText='✅ '+lat+', '+lon;
               btn.innerText='{t("geo_btn", lang)}'; btn.disabled=false;
-              window.parent.postMessage({{type:'streamlit:setComponentValue',value:lat+','+lon}},'*');
+              window.parent.postMessage({{
+                type:'streamlit:setComponentValue',
+                value:lat+','+lon
+              }},'*');
             }},
             function(err) {{
               status.style.color='red';
@@ -783,19 +796,35 @@ if page == t("nav_map", lang):
           );
         }}
         </script>"""
-        components.html(geo_html, height=80)
+        geo_val = components.html(geo_html, height=85)
 
-        st.caption(t("geo_or", lang))
-        c1, c2 = st.columns(2)
-        user_lat = c1.number_input(t("my_lat", lang), value=18.0860, format="%.6f", key="ulat")
-        user_lon = c2.number_input(t("my_lon", lang), value=-15.9650, format="%.6f", key="ulon")
-        search   = st.button(t("search_btn", lang), use_container_width=True)
+        # Stocker les coordonnées reçues du composant
+        if geo_val and isinstance(geo_val, str) and "," in geo_val:
+            try:
+                lat_str, lon_str = geo_val.split(",")
+                st.session_state["gps_lat"] = float(lat_str)
+                st.session_state["gps_lon"] = float(lon_str)
+            except Exception:
+                pass
+
+        has_gps = "gps_lat" in st.session_state and "gps_lon" in st.session_state
+        if has_gps:
+            gps_info = f"📍 {st.session_state['gps_lat']:.5f}, {st.session_state['gps_lon']:.5f}"
+            st.caption(gps_info)
+
+        search = st.button(
+            t("search_btn", lang),
+            use_container_width=True,
+            disabled=not has_gps
+        )
 
     highlight_sid = st.session_state.get("highlight_sid")
     nearest_info  = st.session_state.get("nearest_info")
 
     if search:
-        fuel_code  = next((code for code,fn in fuel_list(lang) if fn == fuel_search_name), None)
+        user_lat  = st.session_state.get("gps_lat", 18.086)
+        user_lon  = st.session_state.get("gps_lon", -15.965)
+        fuel_code = next((code for code,fn in fuel_list(lang) if fn == fuel_search_name), None)
         candidates = []
         for _, s in stations.iterrows():
             sid = int(s["id"])
