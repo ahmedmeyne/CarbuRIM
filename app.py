@@ -838,24 +838,60 @@ st.set_page_config(page_title="CarbuRIM", page_icon="⛽", layout="wide")
 init_db()
 stations = get_stations()
 
-# ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+# ─── ÉTAT INITIAL ─────────────────────────────────────────────────────────────
+if "lang"     not in st.session_state: st.session_state["lang"]     = "FR"
+if "page_idx" not in st.session_state: st.session_state["page_idx"] = 0
+
+# ─── QUERY PARAMS : nav mobile ────────────────────────────────────────────────
+# Traitement EN PREMIER, avant tout widget
+qp = st.query_params
+if "nav" in qp:
+    try:
+        idx = int(qp["nav"])
+        if 0 <= idx <= 3:
+            st.session_state["page_idx"] = idx
+    except Exception:
+        pass
+    st.query_params.clear()
+    st.rerun()
+
+if "lang" in qp:
+    if qp["lang"] in ("FR","AR"):
+        st.session_state["lang"] = qp["lang"]
+    st.query_params.clear()
+    st.rerun()
+
+# ─── LANGUE courante ──────────────────────────────────────────────────────────
+lang = st.session_state["lang"]
+
+# ─── SIDEBAR (desktop uniquement) ─────────────────────────────────────────────
 with st.sidebar:
     lang_choice = st.radio(
         "🌐", ["🇫🇷 Français", "🇲🇷 عربي"],
+        index=1 if lang=="AR" else 0,
         horizontal=True, key="lang_radio", label_visibility="collapsed"
     )
-    lang = "AR" if "عربي" in lang_choice else "FR"
-    st.session_state["lang"] = lang
+    new_lang = "AR" if "عربي" in lang_choice else "FR"
+    if new_lang != lang:
+        st.session_state["lang"] = new_lang
+        lang = new_lang
 
     st.divider()
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Flag_of_Mauritania.svg/320px-Flag_of_Mauritania.svg.png", width=70)
     st.title("⛽ CarbuRIM")
 
-    nav_options = [t("nav_map",lang), t("nav_ann",lang), t("nav_station",lang), t("nav_admin",lang)]
-    page = st.radio("Nav", nav_options, label_visibility="collapsed")
-    st.divider()
+    _page_keys  = ["nav_map","nav_ann","nav_station","nav_admin"]
+    nav_options = [t(k, lang) for k in _page_keys]
+    sidebar_idx = st.radio("Nav", range(len(nav_options)),
+                           format_func=lambda i: nav_options[i],
+                           index=st.session_state["page_idx"],
+                           label_visibility="collapsed")
+    if sidebar_idx != st.session_state["page_idx"]:
+        st.session_state["page_idx"] = sidebar_idx
+        st.rerun()
 
-    if page == t("nav_map", lang):
+    st.divider()
+    if st.session_state["page_idx"] == 0:
         st.caption(t("filter_title", lang))
         fuel_all_lbl   = t("filter_all", lang)
         status_all_lbl = t("filter_all", lang)
@@ -868,9 +904,117 @@ with st.sidebar:
                 upsert_stations(df_osm)
             st.success(f"{len(df_osm)} {t('refresh_ok', lang)}")
             st.rerun()
+    else:
+        fuel_all_lbl   = t("filter_all", lang)
+        status_all_lbl = t("filter_all", lang)
+        fuel_filter    = fuel_all_lbl
+        status_filter  = status_all_lbl
+
+# Page active
+page         = t(_page_keys[st.session_state["page_idx"]], lang)
+_page_icons  = ["🗺️","📢","🔐","⚙️"]
+_active_idx  = st.session_state["page_idx"]
 
 # ─── CSS GLOBAL ───────────────────────────────────────────────────────────────
 inject_responsive_css(lang)
+
+# ─── NAVBAR MOBILE + HEADER MOBILE ────────────────────────────────────────────
+font = "Cairo,sans-serif" if lang=="AR" else "Inter,sans-serif"
+
+# Items nav bas
+_nav_html = ""
+for i,(key,icon) in enumerate(zip(_page_keys,_page_icons)):
+    raw   = t(key,lang)
+    label = raw.split(" ",1)[1] if " " in raw else raw
+    is_active = (i == _active_idx)
+    color  = "#1d6f42" if is_active else "#6b7280"
+    border = "border-top:3px solid #1d6f42;" if is_active else "border-top:3px solid transparent;"
+    _nav_html += f"""<a href="?nav={i}" style="flex:1;display:flex;flex-direction:column;
+      align-items:center;text-decoration:none;padding:6px 2px 2px;
+      font-size:10px;font-weight:600;color:{color};{border}font-family:{font};">
+      <span style="font-size:22px;line-height:1.1">{icon}</span>
+      <span style="margin-top:1px">{label}</span></a>"""
+
+# Boutons langue pour mobile
+lang_fr_active = "background:#1d6f42;color:white;" if lang=="FR" else "background:#f3f4f6;color:#333;"
+lang_ar_active = "background:#1d6f42;color:white;" if lang=="AR" else "background:#f3f4f6;color:#333;"
+
+st.markdown(f"""
+<style>
+/* ── Masquer sidebar + topbar sur mobile ───── */
+@media (max-width: 768px) {{
+    [data-testid="stSidebar"],
+    [data-testid="collapsedControl"],
+    header[data-testid="stHeader"] {{
+        display: none !important;
+    }}
+    .block-container {{
+        padding-top: 60px !important;
+        padding-bottom: 75px !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+    }}
+}}
+/* ── Header mobile fixe en haut ─────────────── */
+#mob-header {{
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 9998;
+    background: #1d6f42;
+    color: white;
+    padding: 10px 14px;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}}
+#mob-header-title {{
+    font-size: 18px;
+    font-weight: 700;
+    font-family: {font};
+    color: white;
+}}
+#mob-lang-btns {{
+    display: flex;
+    gap: 6px;
+}}
+#mob-lang-btns a {{
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    font-family: {font};
+}}
+/* ── Navbar bas ─────────────────────────────── */
+#mob-nav {{
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 9998;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -2px 10px rgba(0,0,0,.1);
+    height: 62px;
+}}
+@media (max-width: 768px) {{
+    #mob-header {{ display: flex !important; }}
+    #mob-nav    {{ display: flex !important; }}
+}}
+</style>
+
+<!-- Header mobile -->
+<div id="mob-header">
+  <span id="mob-header-title">⛽ CarbuRIM</span>
+  <div id="mob-lang-btns">
+    <a href="?lang=FR" style="{lang_fr_active}">FR</a>
+    <a href="?lang=AR" style="{lang_ar_active}">ع</a>
+  </div>
+</div>
+
+<!-- Navbar bas mobile -->
+<div id="mob-nav">{_nav_html}</div>
+""", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
