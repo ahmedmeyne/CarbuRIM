@@ -466,6 +466,9 @@ def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=5
     legend_title     = "المفتاح" if lang=="AR" else "Légende"
     legend_rtl       = "direction:rtl;text-align:right;" if lang=="AR" else ""
 
+    geo_btn_lbl  = "📍 Ma position" if lang=="FR" else "📍 موقعي"
+    geo_err_lbl  = "Position non disponible" if lang=="FR" else "الموقع غير متاح"
+
     html = f"""<!DOCTYPE html><html><head>
     <meta charset='utf-8'/>
     <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'/>
@@ -475,9 +478,14 @@ def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=5
       .legend{{position:absolute;bottom:24px;{'right' if lang=='AR' else 'left'}:12px;z-index:1000;
                background:white;padding:8px 12px;border-radius:8px;border:1px solid #ccc;
                font-size:12px;box-shadow:2px 2px 6px rgba(0,0,0,.2);line-height:1.8;{legend_rtl}}}
+      .geo-btn{{position:absolute;top:80px;right:10px;z-index:1000;
+                background:white;border:2px solid #ccc;border-radius:6px;
+                padding:5px 10px;font-size:13px;cursor:pointer;box-shadow:1px 1px 4px rgba(0,0,0,.2)}}
+      .geo-btn:hover{{background:#f0f0f0}}
     </style>
     </head><body>
     <div id='map'></div>
+    <button class='geo-btn' onclick='locateMe()' title='{geo_btn_lbl}'>{geo_btn_lbl}</button>
     <div class='legend'>
       <b>{legend_title}</b><br>
       <span style='color:#16a34a'>●</span> {legend_available}<br>
@@ -491,6 +499,25 @@ def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=5
         attribution:'© OpenStreetMap contributors',maxZoom:19
       }}).addTo(map);
       {markers_js}
+
+      var userMarker = null;
+      function locateMe() {{
+        if (!navigator.geolocation) {{ alert('{geo_err_lbl}'); return; }}
+        navigator.geolocation.getCurrentPosition(
+          function(pos) {{
+            var lat = pos.coords.latitude;
+            var lon = pos.coords.longitude;
+            map.setView([lat, lon], 15);
+            if (userMarker) map.removeLayer(userMarker);
+            userMarker = L.circleMarker([lat, lon], {{
+              radius: 10, fillColor: '#3b82f6', color: 'white',
+              weight: 3, opacity: 1, fillOpacity: 1
+            }}).addTo(map).bindPopup('{'أنت هنا' if lang=='AR' else 'Vous êtes ici'}').openPopup();
+          }},
+          function() {{ alert('{geo_err_lbl}'); }},
+          {{enableHighAccuracy: true, timeout: 10000}}
+        );
+      }}
     </script>
     </body></html>"""
 
@@ -579,22 +606,84 @@ if page == t("nav_map", lang):
     # ── Recherche station la plus proche ──────────────────────────────────────
     with st.container(border=True):
         st.subheader(t("nearest_title", lang))
-        col_a, col_b = st.columns([1,2])
+
+        col_a, col_b = st.columns([1, 2])
         with col_a:
-            fuel_names = [fn for _, fn in fuel_list(lang)]
+            fuel_names       = [fn for _, fn in fuel_list(lang)]
             fuel_search_name = st.selectbox(t("fuel_wanted", lang), fuel_names, key="fs")
+
         with col_b:
-            c1, c2, c3 = st.columns([2,2,1])
-            user_lat = c1.number_input(t("my_lat", lang), value=18.0860, format="%.5f")
-            user_lon = c2.number_input(t("my_lon", lang), value=-15.9650, format="%.5f")
-            c3.markdown("<br>", unsafe_allow_html=True)
-            search = c3.button(t("search_btn", lang))
+            # Composant HTML géolocalisation navigateur
+            geo_label    = "📍 Utiliser ma position GPS" if lang=="FR" else "📍 استخدام موقعي GPS"
+            geo_wait     = "Localisation en cours…"      if lang=="FR" else "جارٍ تحديد الموقع…"
+            geo_error    = "Impossible d'obtenir votre position. Activez la géolocalisation." \
+                           if lang=="FR" else "تعذّر تحديد موقعك. فعّل خدمة الموقع."
+            geo_denied   = "Permission refusée. Veuillez autoriser la géolocalisation." \
+                           if lang=="FR" else "تم رفض الإذن. يرجى السماح بالوصول إلى الموقع."
+
+            geo_html = f"""
+            <div style="font-family:sans-serif;padding:4px 0">
+              <button id="geoBtn" onclick="getLocation()" style="
+                background:#1d6f42;color:white;border:none;border-radius:6px;
+                padding:8px 16px;font-size:14px;cursor:pointer;width:100%">
+                {geo_label}
+              </button>
+              <div id="geoStatus" style="margin-top:6px;font-size:13px;color:#555"></div>
+              <input type="hidden" id="geoLat" value="">
+              <input type="hidden" id="geoLon" value="">
+            </div>
+            <script>
+            function getLocation() {{
+              var btn = document.getElementById('geoBtn');
+              var status = document.getElementById('geoStatus');
+              if (!navigator.geolocation) {{
+                status.style.color='red';
+                status.innerText = '{geo_error}';
+                return;
+              }}
+              btn.disabled = true;
+              btn.innerText = '{geo_wait}';
+              navigator.geolocation.getCurrentPosition(
+                function(pos) {{
+                  var lat = pos.coords.latitude.toFixed(6);
+                  var lon = pos.coords.longitude.toFixed(6);
+                  document.getElementById('geoLat').value = lat;
+                  document.getElementById('geoLon').value = lon;
+                  status.style.color='green';
+                  status.innerText = '✅ ' + lat + ', ' + lon;
+                  btn.innerText = '{geo_label}';
+                  btn.disabled = false;
+                  // Envoyer à Streamlit via query params
+                  window.parent.postMessage({{
+                    type: 'streamlit:setComponentValue',
+                    value: lat + ',' + lon
+                  }}, '*');
+                }},
+                function(err) {{
+                  status.style.color='red';
+                  status.innerText = err.code === 1 ? '{geo_denied}' : '{geo_error}';
+                  btn.innerText = '{geo_label}';
+                  btn.disabled = false;
+                }},
+                {{enableHighAccuracy: true, timeout: 10000}}
+              );
+            }}
+            </script>
+            """
+            geo_result = components.html(geo_html, height=90)
+
+            # Coordonnées manuelles (fallback)
+            st.caption("— ou entrez manuellement —" if lang=="FR" else "— أو أدخل يدوياً —")
+            c1, c2 = st.columns(2)
+            user_lat = c1.number_input(t("my_lat", lang), value=18.0860, format="%.6f", key="ulat")
+            user_lon = c2.number_input(t("my_lon", lang), value=-15.9650, format="%.6f", key="ulon")
+
+        search = st.button(t("search_btn", lang), use_container_width=False)
 
     highlight_sid = st.session_state.get("highlight_sid")
     nearest_info  = st.session_state.get("nearest_info")
 
     if search:
-        # Retrouver le code depuis le nom traduit
         fuel_code = next((code for code, fn in fuel_list(lang) if fn == fuel_search_name), None)
         candidates = []
         for _, s in stations.iterrows():
