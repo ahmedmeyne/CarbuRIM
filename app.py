@@ -528,14 +528,32 @@ def inject_responsive_css(lang):
 
 # ─── CARTE LEAFLET ────────────────────────────────────────────────────────────
 
-def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=500):
+def build_leaflet_map(stations_df, avail_grp, lang, fuel_code="ESSENCE", highlight_sid=None, height=540):
+    # ── Données stations pour la recherche JS ──────────────────────────────────
+    stations_json = []
+    for _, s in stations_df.iterrows():
+        sid = int(s["id"])
+        a   = avail_grp.get(sid, {})
+        stt = a.get(fuel_code, {}).get("status", "")
+        stations_json.append({
+            "id": sid, "name": s["name"],
+            "lat": s["lat"], "lon": s["lon"],
+            "status": stt,
+            "addr": s.get("address") or "",
+            "op":   s.get("operator") or ""
+        })
+
+    import json as _json
+    stations_js_data = _json.dumps(stations_json, ensure_ascii=False)
+
+    # ── Marqueurs ──────────────────────────────────────────────────────────────
     markers_js = ""
     for _, s in stations_df.iterrows():
         sid  = int(s["id"])
         a    = avail_grp.get(sid, {})
-        name = s["name"].replace("'", "\\'")
-        addr = (s.get("address") or "Nouakchott").replace("'", "\\'")
-        op   = (s.get("operator") or "").replace("'", "\\'")
+        name = s["name"].replace("'", "\\'").replace("`","'")
+        addr = (s.get("address") or "Nouakchott").replace("'", "\\'").replace("`","'")
+        op   = (s.get("operator") or "").replace("'", "\\'").replace("`","'")
 
         statuses = [v.get("status") for v in a.values() if v.get("status")]
         if   "DISPONIBLE" in statuses: color = "#16a34a"
@@ -551,16 +569,16 @@ def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=5
             upd_s = f"<small style='color:#888'> ({upd[:10]})</small>" if upd else ""
             em    = status_emoji(stt) if stt else "•"
             lab   = status_label(stt, lang) if stt else ("<i>غير مسجل</i>" if lang=="AR" else "<i>Non renseigné</i>")
-            rows += f"<tr><td style='padding:3px 10px 3px 0;white-space:nowrap'>{fname}</td><td>{em} {lab}{upd_s}</td></tr>"
+            rows += f"<tr><td style='padding:3px 8px 3px 0;white-space:nowrap'>{fname}</td><td>{em} {lab}{upd_s}</td></tr>"
 
         ann = get_announcements(station_id=sid, active_only=True)
         ann_html = ""
         if not ann.empty:
-            ann_html = "<hr style='margin:6px 0'/><b>" + ("📢 الإعلانات:" if lang=="AR" else "📢 Annonces :") + "</b><br/>"
+            ann_html = "<hr style='margin:5px 0'/><b>" + ("📢 الإعلانات:" if lang=="AR" else "📢 Annonces :") + "</b><br/>"
             for _, row in ann.iterrows():
                 cl = cat_label(row["category"], lang)
-                tt = row["title"].replace("'", "\\'")
-                bb = row["body"][:100].replace("'", "\\'")
+                tt = row["title"].replace("'","\\'").replace("`","'")
+                bb = row["body"][:80].replace("'","\\'").replace("`","'")
                 ann_html += f"<b>{cl} {tt}</b><br/><small>{bb}…</small><br/>"
 
         h = get_opening_hours(sid)
@@ -571,20 +589,20 @@ def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=5
             val = h.get(DAYS_FR[today_idx], "")
             if val:
                 lbl = "اليوم" if lang=="AR" else "Aujourd'hui"
-                hours_html = f"<hr style='margin:6px 0'/><b>🕐 {lbl} ({day_name}) :</b> {val}"
+                hours_html = f"<hr style='margin:5px 0'/><b>🕐 {lbl} ({day_name}) :</b> {val}"
 
-        border = "border:3px solid gold;" if sid == highlight_sid else ""
-        rtl    = "direction:rtl;text-align:right;" if lang=="AR" else ""
-        th_align = "right" if lang=="AR" else "left"
+        border  = "border:3px solid gold;" if sid == highlight_sid else ""
+        rtl     = "direction:rtl;text-align:right;" if lang=="AR" else ""
+        th_al   = "right" if lang=="AR" else "left"
 
         popup = (
-            f"<div style='min-width:240px;max-width:300px;font-family:sans-serif;{border}{rtl}'>"
-            f"<h4 style='margin:0 0 4px;font-size:15px'>⛽ {name}</h4>"
+            f"<div style='min-width:230px;max-width:290px;font-family:sans-serif;{border}{rtl}'>"
+            f"<h4 style='margin:0 0 3px;font-size:14px'>⛽ {name}</h4>"
             f"<small style='color:#555'>{op}{' — ' if op else ''}{addr}</small>"
-            f"<hr style='margin:6px 0'/>"
-            f"<table style='font-size:13px;width:100%'>"
-            f"<tr><th style='text-align:{th_align}'>{'الوقود' if lang=='AR' else 'Carburant'}</th>"
-            f"<th style='text-align:{th_align}'>{'الحالة' if lang=='AR' else 'Statut'}</th></tr>"
+            f"<hr style='margin:5px 0'/>"
+            f"<table style='font-size:12px;width:100%'>"
+            f"<tr><th style='text-align:{th_al}'>{'الوقود' if lang=='AR' else 'Carburant'}</th>"
+            f"<th style='text-align:{th_al}'>{'الحالة' if lang=='AR' else 'Statut'}</th></tr>"
             f"{rows}</table>{hours_html}{ann_html}</div>"
         ).replace("`","'").replace("\n"," ")
 
@@ -600,96 +618,212 @@ def build_leaflet_map(stations_df, avail_grp, lang, highlight_sid=None, height=5
         markers_js += f"""
         L.marker([{s['lat']}, {s['lon']}], {{
             icon: L.divIcon({{html:`{svg}`,iconSize:[34,44],iconAnchor:[17,44],popupAnchor:[0,-44],className:''}})
-        }}).bindPopup(`{popup}`,{{maxWidth:310}})
+        }}).bindPopup(`{popup}`,{{maxWidth:300}})
           .bindTooltip('⛽ {name}',{{direction:'top'}})
           .addTo(map);
         """
 
-    leg_avail = "متوفر"    if lang=="AR" else "Disponible"
-    leg_rupt  = "نفاد"     if lang=="AR" else "Rupture"
-    leg_inc   = "غير محدد" if lang=="AR" else "Incertain"
-    leg_unk   = "غير مسجل" if lang=="AR" else "Non renseigné"
-    leg_ttl   = "المفتاح"  if lang=="AR" else "Légende"
-    leg_rtl   = "direction:rtl;text-align:right;" if lang=="AR" else ""
-    leg_side  = "right" if lang=="AR" else "left"
-    geo_lbl   = t("map_locate", lang)
-    geo_err   = t("geo_error", lang)
-    here_lbl  = t("here", lang)
+    # ── Labels i18n pour le JS ─────────────────────────────────────────────────
+    leg_avail   = "متوفر"    if lang=="AR" else "Disponible"
+    leg_rupt    = "نفاد"     if lang=="AR" else "Rupture"
+    leg_inc     = "غير محدد" if lang=="AR" else "Incertain"
+    leg_unk     = "غير مسجل" if lang=="AR" else "Non renseigné"
+    leg_ttl     = "المفتاح"  if lang=="AR" else "Légende"
+    leg_rtl     = "direction:rtl;text-align:right;" if lang=="AR" else ""
+    leg_side    = "right"    if lang=="AR" else "left"
+    btn_locate  = "📍 موقعي" if lang=="AR" else "📍 Ma position"
+    btn_search  = "🔍 ابحث عن أقرب محطة" if lang=="AR" else "🔍 Trouver la station la plus proche"
+    lbl_wait    = "جارٍ التحديد…" if lang=="AR" else "Localisation…"
+    lbl_err     = "الموقع غير متاح" if lang=="AR" else "Position non disponible"
+    lbl_deny    = "تم رفض الإذن — فعّل الموقع في إعدادات المتصفح" if lang=="AR" else "Permission refusée — activez la géolocalisation dans votre navigateur"
+    lbl_none    = "لا توجد محطة بهذا الوقود قريبة منك" if lang=="AR" else "Aucune station avec ce carburant disponible à proximité"
+    lbl_found   = "أقرب محطة" if lang=="AR" else "Station la plus proche"
+    lbl_km      = "كم"        if lang=="AR" else "km"
+    lbl_here    = "أنت هنا"   if lang=="AR" else "Vous êtes ici"
 
     html = f"""<!DOCTYPE html><html><head>
     <meta charset='utf-8'/>
-    <meta name='viewport' content='width=device-width, initial-scale=1'/>
+    <meta name='viewport' content='width=device-width,initial-scale=1'/>
     <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'/>
     <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
     <style>
-      *{{ box-sizing:border-box; margin:0; padding:0; }}
-      html,body,#map{{ height:100%; width:100%; }}
+      *{{box-sizing:border-box;margin:0;padding:0}}
+      html,body,#map{{height:100%;width:100%}}
+
+      /* ── Panneau de contrôle bas de carte ── */
+      #ctrl{{
+        position:absolute;bottom:0;left:0;right:0;z-index:1000;
+        background:rgba(255,255,255,0.97);
+        padding:10px 12px;
+        display:flex;gap:8px;align-items:center;
+        box-shadow:0 -2px 8px rgba(0,0,0,.15);
+        flex-wrap:wrap;
+      }}
+      #btnLocate{{
+        background:#1d6f42;color:white;border:none;border-radius:7px;
+        padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;
+        touch-action:manipulation;white-space:nowrap;min-height:44px;
+        flex-shrink:0;
+      }}
+      #btnLocate:disabled{{background:#7fb89a;cursor:not-allowed}}
+      #btnLocate:active{{background:#155a34}}
+      #btnSearch{{
+        background:#2563eb;color:white;border:none;border-radius:7px;
+        padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;
+        touch-action:manipulation;white-space:nowrap;min-height:44px;
+        flex:1;
+      }}
+      #btnSearch:disabled{{background:#93b4f0;cursor:not-allowed}}
+      #btnSearch:active{{background:#1d4ed8}}
+      #geoStatus{{
+        font-size:12px;color:#555;width:100%;margin-top:4px;
+        {'text-align:right' if lang=='AR' else ''};
+      }}
+
+      /* ── Légende ── */
       .legend{{
-        position:absolute; bottom:20px; {leg_side}:10px; z-index:1000;
-        background:white; padding:8px 12px; border-radius:8px;
-        border:1px solid #ccc; font-size:12px;
+        position:absolute;top:10px;{leg_side}:10px;z-index:1000;
+        background:white;padding:7px 10px;border-radius:8px;
+        border:1px solid #ccc;font-size:11px;
         box-shadow:2px 2px 6px rgba(0,0,0,.2);
-        line-height:1.9; {leg_rtl}
-        max-width: 140px;
+        line-height:1.9;{leg_rtl}
       }}
-      .geo-btn{{
-        position:absolute; top:76px; right:10px; z-index:1000;
-        background:white; border:2px solid rgba(0,0,0,.2);
-        border-radius:6px; padding:6px 12px;
-        font-size:13px; font-weight:600; cursor:pointer;
-        box-shadow:1px 1px 4px rgba(0,0,0,.2);
-        touch-action:manipulation;
-        white-space:nowrap;
-      }}
-      .geo-btn:hover{{ background:#f0f0f0; }}
-      .geo-btn:active{{ background:#e0e0e0; }}
-      /* Popup responsive */
-      .leaflet-popup-content{{ max-width:90vw !important; }}
+
+      /* ── Popup mobile ── */
+      .leaflet-popup-content{{max-width:85vw!important}}
+      .leaflet-popup-content-wrapper{{border-radius:10px!important}}
+
       @media(max-width:480px){{
-        .legend{{ font-size:11px; padding:6px 8px; }}
-        .geo-btn{{ font-size:12px; padding:5px 8px; top:70px; }}
+        #ctrl{{padding:8px 10px;gap:6px}}
+        #btnLocate,#btnSearch{{font-size:13px;padding:9px 10px}}
+        .legend{{font-size:10px;padding:5px 7px}}
       }}
     </style>
-    </head><body>
+    </head>
+    <body>
     <div id='map'></div>
-    <button class='geo-btn' onclick='locateMe()'>{geo_lbl}</button>
+
+    <div id='ctrl'>
+      <button id='btnLocate' onclick='locateMe()'>{btn_locate}</button>
+      <button id='btnSearch' onclick='findNearest()' disabled>{btn_search}</button>
+      <div id='geoStatus'></div>
+    </div>
+
     <div class='legend'>
       <b>{leg_ttl}</b><br>
-      <span style='color:#16a34a;font-size:16px'>●</span> {leg_avail}<br>
-      <span style='color:#dc2626;font-size:16px'>●</span> {leg_rupt}<br>
-      <span style='color:#d97706;font-size:16px'>●</span> {leg_inc}<br>
-      <span style='color:#6b7280;font-size:16px'>●</span> {leg_unk}
+      <span style='color:#16a34a;font-size:14px'>●</span> {leg_avail}<br>
+      <span style='color:#dc2626;font-size:14px'>●</span> {leg_rupt}<br>
+      <span style='color:#d97706;font-size:14px'>●</span> {leg_inc}<br>
+      <span style='color:#6b7280;font-size:14px'>●</span> {leg_unk}
     </div>
-    <script>
-      var map = L.map('map',{{zoomControl:true,tap:true}}).setView([18.086,-15.965],13);
-      L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png',{{
-        attribution:'© OpenStreetMap',maxZoom:19
-      }}).addTo(map);
-      {markers_js}
 
-      var userMarker = null;
-      function locateMe() {{
-        if (!navigator.geolocation) {{ alert('{geo_err}'); return; }}
-        var btn = document.querySelector('.geo-btn');
-        btn.disabled = true; btn.style.opacity = '0.6';
-        navigator.geolocation.getCurrentPosition(
-          function(pos) {{
-            var lat = pos.coords.latitude, lon = pos.coords.longitude;
-            map.setView([lat,lon],15);
-            if (userMarker) map.removeLayer(userMarker);
-            userMarker = L.circleMarker([lat,lon],{{
-              radius:10, fillColor:'#3b82f6', color:'white',
-              weight:3, opacity:1, fillOpacity:1
-            }}).addTo(map).bindPopup('{here_lbl}').openPopup();
-            btn.disabled = false; btn.style.opacity = '1';
-          }},
-          function() {{
-            alert('{geo_err}');
-            btn.disabled = false; btn.style.opacity = '1';
-          }},
-          {{enableHighAccuracy:true, timeout:10000}}
-        );
+    <script>
+    var map = L.map('map',{{zoomControl:true,tap:true}}).setView([18.086,-15.965],13);
+    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png',{{
+      attribution:'© OpenStreetMap',maxZoom:19
+    }}).addTo(map);
+
+    {markers_js}
+
+    // Données stations pour la recherche
+    var stationsData = {stations_js_data};
+
+    var userMarker  = null;
+    var nearMarker  = null;
+    var userLat     = null;
+    var userLon     = null;
+
+    function haversine(lat1,lon1,lat2,lon2){{
+      var R=6371, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
+      var a=Math.sin(dLat/2)*Math.sin(dLat/2)+
+            Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+            Math.sin(dLon/2)*Math.sin(dLon/2);
+      return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    }}
+
+    function locateMe(){{
+      var btn = document.getElementById('btnLocate');
+      var st  = document.getElementById('geoStatus');
+      if(!navigator.geolocation){{ st.style.color='#dc2626'; st.innerText='{lbl_err}'; return; }}
+      btn.disabled=true; btn.textContent='⏳ {lbl_wait}';
+      st.style.color='#888'; st.innerText='';
+
+      navigator.geolocation.getCurrentPosition(
+        function(pos){{
+          userLat = pos.coords.latitude;
+          userLon = pos.coords.longitude;
+
+          // Marqueur position utilisateur
+          if(userMarker) map.removeLayer(userMarker);
+          userMarker = L.circleMarker([userLat,userLon],{{
+            radius:10,fillColor:'#3b82f6',color:'white',
+            weight:3,opacity:1,fillOpacity:1
+          }}).addTo(map).bindPopup('{lbl_here}');
+          map.setView([userLat,userLon],14);
+
+          st.style.color='#16a34a';
+          st.innerText='✅ '+userLat.toFixed(4)+', '+userLon.toFixed(4);
+          btn.disabled=false; btn.textContent='{btn_locate}';
+          document.getElementById('btnSearch').disabled=false;
+        }},
+        function(err){{
+          st.style.color='#dc2626';
+          st.innerText=err.code===1?'{lbl_deny}':'{lbl_err}';
+          btn.disabled=false; btn.textContent='{btn_locate}';
+        }},
+        {{enableHighAccuracy:true,timeout:15000,maximumAge:0}}
+      );
+    }}
+
+    function findNearest(){{
+      if(userLat===null) return;
+      var st = document.getElementById('geoStatus');
+
+      // Trouver la station la plus proche avec statut DISPONIBLE
+      var best=null, bestDist=Infinity;
+      stationsData.forEach(function(s){{
+        if(s.status!=='DISPONIBLE') return;
+        var d=haversine(userLat,userLon,s.lat,s.lon);
+        if(d<bestDist){{ bestDist=d; best=s; }}
+      }});
+
+      if(nearMarker){{ map.removeLayer(nearMarker); nearMarker=null; }}
+
+      if(!best){{
+        st.style.color='#d97706';
+        st.innerText='⚠️ {lbl_none}';
+        return;
       }}
+
+      // Marqueur doré sur la station trouvée
+      var goldSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='40' height='52' viewBox='0 0 40 52'>
+        <ellipse cx='20' cy='50' rx='8' ry='2.5' fill='rgba(0,0,0,0.25)'/>
+        <path d='M20 0 C9 0 2 8 2 18 C2 32 20 50 20 50 C20 50 38 32 38 18 C38 8 31 0 20 0Z'
+              fill='#f59e0b' stroke='white' stroke-width='2.5'/>
+        <text x='20' y='24' text-anchor='middle' font-size='18' fill='white'>⛽</text>
+      </svg>`;
+      nearMarker = L.marker([best.lat,best.lon],{{
+        icon:L.divIcon({{html:goldSvg,iconSize:[40,52],iconAnchor:[20,52],popupAnchor:[0,-52],className:''}})
+      }}).addTo(map);
+
+      var dist = bestDist<1 ? (bestDist*1000).toFixed(0)+' m' : bestDist.toFixed(2)+' {lbl_km}';
+      nearMarker.bindPopup(
+        '<div style="font-family:sans-serif;min-width:200px">' +
+        '<b style="color:#f59e0b;font-size:15px">⭐ {lbl_found}</b><br/>' +
+        '<b>⛽ '+best.name+'</b><br/>' +
+        '<span style="color:#16a34a;font-weight:600">📍 '+dist+'</span>' +
+        (best.addr?'<br/><small>'+best.addr+'</small>':'') +
+        '</div>',
+        {{maxWidth:260}}
+      ).openPopup();
+
+      // Zoom pour voir utilisateur + station
+      var bounds = L.latLngBounds([[userLat,userLon],[best.lat,best.lon]]);
+      map.fitBounds(bounds,{{padding:[40,40]}});
+
+      st.style.color='#16a34a';
+      st.innerText='⭐ '+best.name+' — '+dist;
+    }}
     </script>
     </body></html>"""
 
@@ -756,152 +890,29 @@ if page == t("nav_map", lang):
             avail_grp[int(sid)] = grp.set_index("fuel")[["status","updated_at"]].to_dict("index")
 
     # ── Recherche station la plus proche ──────────────────────────────────────
-    # Récupérer les coords GPS depuis les query params (soumis par le composant HTML)
-    qp = st.query_params
-    if "lat" in qp and "lon" in qp:
-        try:
-            st.session_state["gps_lat"] = float(qp["lat"])
-            st.session_state["gps_lon"] = float(qp["lon"])
-        except Exception:
-            pass
-
     with st.container(border=True):
         st.subheader(t("nearest_title", lang))
         fuel_names       = [fn for _,fn in fuel_list(lang)]
         fuel_search_name = st.selectbox(t("fuel_wanted", lang), fuel_names, key="fs")
+        fuel_code_sel    = next((code for code,fn in fuel_list(lang) if fn == fuel_search_name), "ESSENCE")
 
-        has_gps = "gps_lat" in st.session_state and "gps_lon" in st.session_state
-
-        # Bouton GPS — soumet les coordonnées via query params puis recharge la page
-        geo_label  = t("geo_btn",    lang)
-        geo_wait   = t("geo_wait",   lang)
-        geo_err    = t("geo_error",  lang)
-        geo_denied = t("geo_denied", lang)
-
-        geo_html = f"""<!DOCTYPE html><html><head>
-        <meta charset="utf-8"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1"/>
-        <style>
-          * {{ box-sizing:border-box; margin:0; padding:0; }}
-          body {{ font-family: {'Cairo,sans-serif' if lang=='AR' else 'Inter,sans-serif'};
-                 background:transparent; padding:4px 0; }}
-          #geoBtn {{
-            background:#1d6f42; color:white; border:none; border-radius:8px;
-            padding:13px 18px; font-size:15px; font-weight:600; cursor:pointer;
-            width:100%; touch-action:manipulation; min-height:48px;
-            display:flex; align-items:center; justify-content:center; gap:8px;
-          }}
-          #geoBtn:disabled {{ background:#6b9e82; cursor:not-allowed; }}
-          #geoBtn:active {{ background:#155a34; }}
-          #geoStatus {{
-            margin-top:8px; font-size:13px; min-height:20px; padding:2px 0;
-            {'text-align:right;' if lang=='AR' else ''}
-          }}
-        </style>
-        </head><body>
-        <button id="geoBtn" onclick="getLocation()">📍 {geo_label}</button>
-        <div id="geoStatus"></div>
-        <script>
-        function getLocation() {{
-          var btn = document.getElementById('geoBtn');
-          var st  = document.getElementById('geoStatus');
-          if (!navigator.geolocation) {{
-            st.style.color='#dc2626'; st.innerText='{geo_err}'; return;
-          }}
-          btn.disabled = true;
-          btn.innerHTML = '⏳ {geo_wait}';
-          st.style.color = '#888'; st.innerText = '...';
-          navigator.geolocation.getCurrentPosition(
-            function(pos) {{
-              var lat = pos.coords.latitude.toFixed(6);
-              var lon = pos.coords.longitude.toFixed(6);
-              st.style.color = '#16a34a';
-              st.innerText = '✅ ' + lat + ', ' + lon;
-              btn.disabled = false;
-              btn.innerHTML = '📍 {geo_label}';
-              // Soumettre les coords à Streamlit via query params → rechargement de page
-              var url = window.parent.location.href.split('?')[0];
-              window.parent.location.href = url + '?lat=' + lat + '&lon=' + lon;
-            }},
-            function(err) {{
-              st.style.color = '#dc2626';
-              st.innerText = err.code === 1 ? '{geo_denied}' : '{geo_err}';
-              btn.disabled = false;
-              btn.innerHTML = '📍 {geo_label}';
-            }},
-            {{enableHighAccuracy: true, timeout: 12000, maximumAge: 30000}}
-          );
-        }}
-        </script>
-        </body></html>"""
-
-        components.html(geo_html, height=90)
-
-        if has_gps:
-            lat_disp = st.session_state['gps_lat']
-            lon_disp = st.session_state['gps_lon']
-            st.success(f"📍 {lat_disp:.5f}, {lon_disp:.5f}")
-            if st.button("🗑️ " + ("Effacer ma position" if lang=="FR" else "مسح موقعي"), use_container_width=True):
-                st.session_state.pop("gps_lat", None)
-                st.session_state.pop("gps_lon", None)
-                st.query_params.clear()
-                st.rerun()
-
-        search = st.button(
-            t("search_btn", lang),
-            use_container_width=True,
-            disabled=not has_gps
-        )
+        # Message d'info : la recherche se fait via la carte
+        if lang == "AR":
+            st.info("📍 انقر على زر **'ابحث عن أقرب محطة'** في الخريطة أدناه للعثور على أقرب محطة تلقائياً.")
+        else:
+            st.info("📍 Cliquez sur **'Trouver la station la plus proche'** dans la carte ci-dessous — votre position GPS sera détectée automatiquement.")
 
     highlight_sid = st.session_state.get("highlight_sid")
     nearest_info  = st.session_state.get("nearest_info")
 
-    if search:
-        user_lat  = st.session_state.get("gps_lat", 18.086)
-        user_lon  = st.session_state.get("gps_lon", -15.965)
-        fuel_code = next((code for code,fn in fuel_list(lang) if fn == fuel_search_name), None)
-        candidates = []
-        for _, s in stations.iterrows():
-            sid = int(s["id"])
-            stt = avail_grp.get(sid, {}).get(fuel_code, {}).get("status")
-            if stt == "DISPONIBLE":
-                d = haversine(user_lat, user_lon, s["lat"], s["lon"])
-                candidates.append((d, sid, s["name"], s["lat"], s["lon"],
-                                   s.get("address",""), s.get("operator","")))
-        if candidates:
-            candidates.sort()
-            best = candidates[0]
-            st.session_state["highlight_sid"] = best[1]
-            st.session_state["nearest_info"]  = best
-            highlight_sid, nearest_info = best[1], best
-        else:
-            st.warning(f"{t('no_nearest', lang)} **{fuel_search_name}** {t('no_nearest2', lang)}")
-            for k in ["highlight_sid","nearest_info"]: st.session_state.pop(k, None)
-            highlight_sid = nearest_info = None
-
-    if nearest_info:
-        dist, sid, name, nlat, nlon, addr, op = nearest_info
-        km_txt = f"{dist:.2f} كم" if lang=="AR" else f"{dist:.2f} km"
-        st.success(f"⛽ **{name}** — {'على بُعد' if lang=='AR' else 'à'} **{km_txt}**")
-        with st.expander(t("details_btn", lang)):
-            if addr: st.write(f"📍 {addr}")
-            if op:   st.write(f"🏢 {op}")
-            h = get_opening_hours(sid)
-            if h:
-                today_idx = datetime.now().weekday()
-                val = h.get(DAYS_FR[today_idx], "")
-                if val: st.write(f"🕐 {t('today',lang)} ({day_label(today_idx,lang)}) : {val}")
-            a = avail_grp.get(sid, {})
-            for f_code, f_fr, f_ar in FUELS:
-                stt = a.get(f_code, {}).get("status")
-                if stt: st.write(f"{status_emoji(stt)} {f_ar if lang=='AR' else f_fr} : {status_label(stt, lang)}")
-
     st.divider()
 
-    # ── Carte + tableau (stack sur mobile) ────────────────────────────────────
+    # ── Carte interactive (géoloc + recherche intégrées) ──────────────────────
     st.subheader(t("map_subtitle", lang))
     st.caption(t("map_caption", lang))
-    build_leaflet_map(stations, avail_grp, lang, highlight_sid=highlight_sid, height=460)
+    build_leaflet_map(stations, avail_grp, lang,
+                      fuel_code=fuel_code_sel,
+                      highlight_sid=highlight_sid, height=520)
 
     st.divider()
     st.subheader(t("table_title", lang))
